@@ -1,0 +1,64 @@
+# FFI bindings configuration for llama.cpp
+name: LlamaBindings
+description: 'FFI bindings for llama.cpp'
+output: 'lib/src/llama_bindings_generated.dart'
+language: c
+silence-enum-warning: true
+
+headers:
+  entry-points:
+    - 'include/llama.h'
+    - 'include/ggml.h'
+    - 'include/gguf.h'
+  include-directives:
+    - 'include/llama.h'
+    - 'include/ggml.h'
+    - 'include/gguf.h'
+    - 'include/ggml-backend.h'
+    - 'include/ggml-cpu.h'
+    - 'include/ggml-opt.h'
+    - 'include/ggml-alloc.h'
+
+compiler-opts:
+  - '-I/home/thomas/Projects/snapspend/llama-ffi/include'
+
+preamble: |
+  // ignore_for_file: always_specify_types
+  // ignore_for_file: camel_case_types
+  // ignore_for_file: constant_identifier_names
+  // ignore_for_file: non_constant_identifier_names
+  // ignore_for_file: public_member_api_docs
+  // ignore_for_file: unused_element
+  // ignore_for_file: unused_field
+
+comments:
+  style: any
+  length: full
+
+structs:
+  # Include all structs
+  include:
+    - '.*'
+
+functions:
+  # Include all functions
+  include:
+    - '.*'
+
+enums:
+  # Include all enums
+  include:
+    - '.*'
+
+macros:
+  # Include important macros
+  include:
+    - 'LLAMA_.*'
+    - 'GGML_.*'
+    - 'GGUF_.*'
+
+# Type mappings
+typedefs:
+  include:
+    - '.*'
+
