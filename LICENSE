@@ -1,0 +1,58 @@
+SnapSpend Non-Commercial, No-Redistribution License
+
+Copyright (c) 2025 Zaw Lin Tun (Thomas Brillion)
+All rights reserved.
+
+NOTICE: This license applies to the original work in this repository (the “Software”).
+Third-party dependencies and assets included or referenced by the Software may be
+subject to their own licenses and are not licensed by this document.
+
+1. Definitions
+   “Software” means the source code, build scripts, configuration, and other
+   materials contained in this repository, excluding third-party components.
+   “Commercial Use” means use of the Software to generate revenue or other
+   commercial advantage, including but not limited to: selling, licensing,
+   offering as a paid service, incorporating into a commercial product or
+   service, internal business use, or using the Software to support a business
+   activity.
+
+2. Grant of Limited Permission (Non-Commercial Evaluation Only)
+   Subject to full compliance with this license, you are granted a limited,
+   revocable, non-exclusive, non-transferable permission to use the Software
+   solely for personal, educational, or evaluation purposes that are NOT
+   Commercial Use.
+
+3. Restrictions
+   You may NOT, without prior written permission from Zaw:
+   a) use the Software for any Commercial Use;
+   b) copy, publish, distribute, share, sublicense, rent, lease, lend, sell,
+      or otherwise redistribute the Software (in source or binary form), in whole
+      or in part;
+   c) create, distribute, or publish derivative works based on the Software;
+   d) remove, modify, or obscure any copyright, trademark, or attribution notices.
+
+4. Ownership
+   The Software is licensed, not sold. Zaw retains all right, title, and interest
+   in and to the Software, including all intellectual property rights.
+
+5. Termination
+   This license is effective until terminated. Any violation of this license will
+   automatically terminate your rights under this license without notice. Upon
+   termination, you must cease all use of the Software and destroy all copies in
+   your possession or control.
+
+6. Disclaimer of Warranty
+   THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. YOU ASSUME ALL RISK
+   ASSOCIATED WITH THE USE OF THE SOFTWARE.
+
+7. Limitation of Liability
+   TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL ZAW BE LIABLE FOR ANY
+   CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR
+   OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+   OR OTHER DEALINGS IN THE SOFTWARE.
+
+8. Contact
+   For commercial licensing or redistribution permission, contact Zaw.
+
