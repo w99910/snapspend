@@ -1,6 +1,10 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -17,67 +21,27 @@ class OcrService {
   /// - Ensures DPI is at least 300
   /// - Applies contrast enhancement
   /// - Applies sharpening
-  Future<String> preprocessImage(String imagePath) async {
+  Future<String> preprocessImage(
+    String imagePath, {
+    bool runInBackground = true,
+  }) async {
     try {
-      // Read the image
-      final imageFile = File(imagePath);
-      final bytes = await imageFile.readAsBytes();
-      final image = img.decodeImage(bytes);
-
-      if (image == null) {
-        throw Exception('Failed to decode image');
-      }
-
-      print('Original image size: ${image.width}x${image.height}');
-
-      // Convert to grayscale
-      final grayscale = img.grayscale(image);
-      print('Converted to grayscale');
-
-      // Ensure minimum DPI of 300
-      // Calculate scaling factor if needed
-      const minDpi = 300;
-      const targetWidth = 2480; // ~8.27 inches at 300 DPI (A4 width)
-
-      img.Image processed = grayscale;
-      if (grayscale.width < targetWidth) {
-        final scaleFactor = targetWidth / grayscale.width;
-        final newWidth = (grayscale.width * scaleFactor).round();
-        final newHeight = (grayscale.height * scaleFactor).round();
-
-        processed = img.copyResize(
-          grayscale,
-          width: newWidth,
-          height: newHeight,
-          interpolation: img.Interpolation.cubic,
-        );
-        print('Resized to ${processed.width}x${processed.height} for 300+ DPI');
-      }
-
-      // Increase contrast for better text recognition
-      // processed = img.contrast(processed, contrast: 120);
-      // print('Applied contrast enhancement');
-
-      // Apply sharpening
-      // processed = img.convolution(
-      //   processed,
-      //   filter: [0, -1, 0, -1, 5, -1, 0, -1, 0],
-      // );
-      // print('Applied sharpening');
-
-      // Optional: Apply adaptive thresholding for better text/background separation
-      // processed = _adaptiveThreshold(processed);
-      // print('Applied adaptive thresholding');
-
-      // Save the processed image
+      // Compute output path on the UI isolate (path_provider is MethodChannel-based).
       final tempDir = await getTemporaryDirectory();
       final processedPath = path.join(
         tempDir.path,
-        'processed_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        'processed_${DateTime.now().millisecondsSinceEpoch}.png',
       );
 
-      final processedFile = File(processedPath);
-      await processedFile.writeAsBytes(img.encodeJpg(processed, quality: 95));
+      if (runInBackground) {
+        // Offload CPU-heavy image decoding/resizing/contrast work to a background isolate.
+        await compute(_preprocessImageCompute, <String, String>{
+          'inputPath': imagePath,
+          'outputPath': processedPath,
+        });
+      } else {
+        _preprocessImageSync(inputPath: imagePath, outputPath: processedPath);
+      }
 
       print('Preprocessed image saved to: $processedPath');
       return processedPath;
@@ -88,6 +52,7 @@ class OcrService {
   }
 
   /// Apply adaptive thresholding for better text recognition
+  // ignore: unused_element
   img.Image _adaptiveThreshold(img.Image image) {
     final threshold = img.Image(width: image.width, height: image.height);
 
@@ -128,29 +93,145 @@ class OcrService {
     return threshold;
   }
 
+  /// Apply bilateral filter to reduce noise while preserving edges
+  /// This is especially useful for screen photos and low-quality images
+  // ignore: unused_element
+  img.Image _bilateralFilter(img.Image image) {
+    // Create output image
+    final filtered = img.Image(width: image.width, height: image.height);
+
+    const int diameter = 5; // Filter diameter
+    const double sigmaColor = 50.0; // Filter sigma in color space
+    const double sigmaSpace = 50.0; // Filter sigma in coordinate space
+
+    final radius = diameter ~/ 2;
+
+    for (var y = 0; y < image.height; y++) {
+      for (var x = 0; x < image.width; x++) {
+        double sumWeights = 0.0;
+        double sumValue = 0.0;
+
+        final centerPixel = image.getPixel(x, y);
+        final centerValue = centerPixel.r.toDouble();
+
+        // Apply bilateral filter in neighborhood
+        for (var dy = -radius; dy <= radius; dy++) {
+          for (var dx = -radius; dx <= radius; dx++) {
+            final nx = x + dx;
+            final ny = y + dy;
+
+            if (nx >= 0 && nx < image.width && ny >= 0 && ny < image.height) {
+              final neighborPixel = image.getPixel(nx, ny);
+              final neighborValue = neighborPixel.r.toDouble();
+
+              // Calculate spatial distance
+              final spatialDist = (dx * dx + dy * dy).toDouble();
+              final spatialWeight = _gaussian(
+                spatialDist,
+                sigmaSpace * sigmaSpace,
+              );
+
+              // Calculate color distance
+              final colorDist = (centerValue - neighborValue).abs();
+              final colorWeight = _gaussian(colorDist, sigmaColor * sigmaColor);
+
+              // Combined weight
+              final weight = spatialWeight * colorWeight;
+
+              sumWeights += weight;
+              sumValue += weight * neighborValue;
+            }
+          }
+        }
+
+        final filteredValue = (sumValue / sumWeights).round().clamp(0, 255);
+        filtered.setPixel(
+          x,
+          y,
+          img.ColorRgb8(filteredValue, filteredValue, filteredValue),
+        );
+      }
+    }
+
+    return filtered;
+  }
+
+  /// Gaussian function for bilateral filter
+  double _gaussian(double x, double sigma) {
+    return (1.0 / (2.0 * math.pi * sigma)) * math.exp(-x / (2.0 * sigma));
+  }
+
   /// Scans a receipt image with Tesseract OCR
   /// Returns the extracted text
-  Future<String> scanReceipt(String imagePath) async {
+  Future<String> scanReceipt(
+    String imagePath, {
+    bool preprocessInBackground = true,
+    bool ocrInBackground = true,
+  }) async {
     try {
       print('Starting OCR scan for: $imagePath');
 
       // Preprocess the image for better OCR results
       print('Preprocessing image...');
-      final processedPath = await preprocessImage(imagePath);
+      final processedPath = await preprocessImage(
+        imagePath,
+        runInBackground: preprocessInBackground,
+      );
 
       // Perform OCR on the preprocessed image
       print('Running Tesseract OCR...');
-      final text = await FlutterTesseractOcr.extractText(
-        processedPath,
-        language: 'eng+tha',
-        args: {
-          "psm": "6", // Assume a single uniform block of text
-          "osm": "1",
-          "preserve_interword_spaces": "1",
-        },
-      );
+      final ocrArgs = <String, String>{
+        "psm":
+            "3", // Fully automatic page segmentation (works best for mixed content)
+        "oem": "1", // Neural nets LSTM engine only
+        "preserve_interword_spaces": "1",
+      };
 
-      print('OCR completed. Extracted text length: ${text.length}');
+      String text;
+      RootIsolateToken? rootToken;
+      if (ocrInBackground) {
+        // RootIsolateToken.instance can throw if bindings weren't initialized.
+        try {
+          rootToken = RootIsolateToken.instance;
+        } catch (e) {
+          rootToken = null;
+        }
+      }
+
+      if (ocrInBackground && rootToken != null) {
+        // NOTE: Calling MethodChannel plugins from background isolates requires
+        // BackgroundIsolateBinaryMessenger.ensureInitialized(rootToken).
+        // If this fails on a given platform/plugin version, we'll fall back to
+        // running on the main isolate.
+        try {
+          text = await compute(_tesseractOcrCompute, <String, Object?>{
+            'rootToken': rootToken,
+            'imagePath': processedPath,
+            'language': 'tha+eng',
+            'args': ocrArgs,
+          });
+        } catch (e) {
+          print('Background OCR failed, falling back to main isolate: $e');
+          text = await FlutterTesseractOcr.extractText(
+            processedPath,
+            language:
+                'tha+eng', // Thai first for better Thai character recognition
+            args: ocrArgs,
+          );
+        }
+      } else {
+        text = await FlutterTesseractOcr.extractText(
+          processedPath,
+          language:
+              'tha+eng', // Thai first for better Thai character recognition
+          args: ocrArgs,
+        );
+      }
+
+      // Post-process the OCR text to fix common mistakes
+      final cleanedText = _postProcessOcrText(text);
+
+      print('${imagePath} OCR Text:\n$cleanedText');
 
       // Clean up the preprocessed temporary file
       try {
@@ -160,11 +241,43 @@ class OcrService {
         print('Warning: Could not delete temporary file: $e');
       }
 
-      return text;
+      return cleanedText;
     } catch (e) {
       print('Error scanning receipt: $e');
       rethrow;
     }
+  }
+
+  /// Post-process OCR text to fix common recognition errors
+  String _postProcessOcrText(String text) {
+    String cleaned = text;
+
+    // Fix common Thai currency misrecognitions
+    // "um" is often misread "บาท" (Baht)
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'(\d+\.?\d*)\s*um\b', caseSensitive: false),
+      (match) => '${match.group(1)} บาท',
+    );
+
+    // Fix "จานวน" -> "จํานวน" (Amount with correct tone mark)
+    cleaned = cleaned.replaceAll('จานวน', 'จํานวน');
+
+    // Fix common number confusions in Thai context
+    cleaned = cleaned.replaceAll(RegExp(r'099/-'), '0997-');
+
+    // Fix "O" (letter O) misread as "0" (zero) in transaction IDs
+    // Only in specific contexts where it's clearly a letter
+    cleaned = cleaned.replaceAll(RegExp(r'AQR0O'), 'AQRO0');
+
+    // Normalize whitespace (but preserve line breaks)
+    // Replace multiple spaces with single space
+    cleaned = cleaned.replaceAll(RegExp(r'[ \t]+'), ' ');
+    // Clean up spaces around line breaks
+    cleaned = cleaned.replaceAll(RegExp(r' *\n *'), '\n');
+    // Remove multiple consecutive line breaks
+    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    return cleaned.trim();
   }
 
   /// Extract structured data from receipt text
@@ -248,9 +361,9 @@ class OcrService {
     return result;
   }
 
-  /// Extract structured receipt data using regex-based pattern matching
+  /// Extract structured receipt data using Llama AI model
   /// Returns a JSON object with sender, recipient, amount, and time
-  /// This is faster and more reliable than LLM-based extraction
+  /// Falls back to regex extraction if LLM fails
   Future<Map<String, dynamic>> extractReceiptDataWithLlama({
     required String receiptText,
     Function(String)? onStatusUpdate,
@@ -259,35 +372,112 @@ class OcrService {
     try {
       // Update status
       if (onStatusUpdate != null) {
-        onStatusUpdate('Extracting receipt data...');
+        onStatusUpdate('Extracting receipt data with AI...');
       }
 
-      // Use regex-based extraction directly (much faster than LLM)
-      print('📋 Using regex-based extraction for receipt data');
-      final result = extractFromThaiReceipt(receiptText);
+      // Check if Llama model is ready
+      if (!_llamaService.isModelReady) {
+        print('⚠️ Llama model not ready, falling back to regex extraction');
+        if (onStatusUpdate != null) {
+          onStatusUpdate('Using fallback extraction...');
+        }
+        return extractFromThaiReceipt(receiptText);
+      }
+
+      // Create a detailed prompt for the LLM
+      // final prompt = _buildReceiptExtractionPrompt(receiptText);
+
+      print('🤖 Using Llama AI for receipt data extraction');
+      // print('� Prompt length: ${prompt.length} characters');
+
+      // Generate response with Llama
+      String generatedJson = '';
+      await _llamaService.generateText(
+        prompt: receiptText,
+        onStatusUpdate: (status) {
+          print('Llama status: $status');
+          if (onStatusUpdate != null) {
+            onStatusUpdate(status);
+          }
+        },
+        onTextUpdate: (text) {
+          generatedJson = text;
+          if (onTextUpdate != null) {
+            onTextUpdate(text);
+          }
+        },
+        maxTokens: 150, // Reduced - just need simple JSON
+        contextSize: 2048, // Increased for longer OCR text
+        streamOutput: false,
+        threads: 4,
+      );
+
+      print('🎯 Generated response:\n$generatedJson');
+
+      // Parse and validate JSON response
+      final extractedData = _extractJsonFromResponse(generatedJson);
+
+      if (extractedData == null) {
+        print('⚠️ Failed to parse LLM response, falling back to regex');
+        if (onStatusUpdate != null) {
+          onStatusUpdate('Using fallback extraction...');
+        }
+        return extractFromThaiReceipt(receiptText);
+      }
 
       // Validate we got some data
-      if (result['amount'] == 0.0 &&
-          result['sender'] == 'N/A' &&
-          result['time'] == 'N/A') {
-        throw Exception('Failed to extract any valid data from receipt');
+      if (extractedData['amount'] == 0.0 &&
+          extractedData['sender'] == 'N/A' &&
+          extractedData['time'] == 'N/A') {
+        print('⚠️ LLM extracted empty data, falling back to regex');
+        return extractFromThaiReceipt(receiptText);
       }
 
       if (onStatusUpdate != null) {
         onStatusUpdate('Extraction complete!');
       }
 
-      return result;
+      print('✅ Successfully extracted data with Llama AI');
+      return extractedData;
     } catch (e) {
-      print('Error in extractReceiptDataWithLlama: $e');
-      rethrow;
+      print('❌ Error in extractReceiptDataWithLlama: $e');
+      print('🔄 Falling back to regex extraction');
+
+      if (onStatusUpdate != null) {
+        onStatusUpdate('Using fallback extraction...');
+      }
+
+      // Fallback to regex extraction
+      return extractFromThaiReceipt(receiptText);
     }
+  }
+
+  /// Build a detailed prompt for receipt extraction
+  String _buildReceiptExtractionPrompt(String receiptText) {
+    return '''Extract receipt information from the following Thai text and output ONLY valid JSON with English keys.
+
+Receipt OCR text:
+$receiptText
+
+Rules:
+1. Output MUST be valid JSON only
+2. Use ONLY English keys: "sender", "recipient", "amount", "time"
+3. NO Thai text in keys
+4. NO explanations or extra text
+5. If field not found, use "N/A"
+
+Example output:
+{"sender":"วริษฐา ม","recipient":"ธรรมรักษ์ พรหมเผ่า","amount":81.00,"time":"18 Oct 2025 19:45"}
+
+Now extract and output JSON:''';
   }
 
   /// Extract JSON object from LLM response text
   Map<String, dynamic>? _extractJsonFromResponse(String response) {
     // Clean response - remove any markdown code blocks
     String cleaned = response.trim();
+
+    // Remove markdown code fences
     if (cleaned.startsWith('```json')) {
       cleaned = cleaned.substring(7);
     }
@@ -298,6 +488,27 @@ class OcrService {
       cleaned = cleaned.substring(0, cleaned.length - 3);
     }
     cleaned = cleaned.trim();
+
+    // Remove any text before the first {
+    final firstBrace = cleaned.indexOf('{');
+    if (firstBrace > 0) {
+      cleaned = cleaned.substring(firstBrace);
+    }
+
+    // Remove any text after the last }
+    final lastBrace = cleaned.lastIndexOf('}');
+    if (lastBrace >= 0 && lastBrace < cleaned.length - 1) {
+      cleaned = cleaned.substring(0, lastBrace + 1);
+    }
+
+    // Debug: Print raw bytes to check encoding
+    print('🔍 Raw response bytes (first 100):');
+    final bytes = utf8.encode(
+      cleaned.substring(0, cleaned.length > 100 ? 100 : cleaned.length),
+    );
+    print(
+      '   ${bytes.take(50).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}',
+    );
 
     print(
       '🔍 Attempting to parse: ${cleaned.substring(0, cleaned.length > 200 ? 200 : cleaned.length)}...',
@@ -674,4 +885,74 @@ class OcrService {
 
     return result;
   }
+}
+
+// ---------------------------------------
+// Background isolate helpers (top-level)
+// ---------------------------------------
+
+Future<void> _preprocessImageCompute(Map<String, String> args) async {
+  _preprocessImageSync(
+    inputPath: args['inputPath']!,
+    outputPath: args['outputPath']!,
+  );
+}
+
+void _preprocessImageSync({
+  required String inputPath,
+  required String outputPath,
+}) {
+  // Read and decode (sync IO is fine here; it runs in a background isolate when used with compute()).
+  final bytes = File(inputPath).readAsBytesSync();
+  final image = img.decodeImage(bytes);
+
+  if (image == null) {
+    throw Exception('Failed to decode image');
+  }
+
+  print('Original image size: ${image.width}x${image.height}');
+
+  // Convert to grayscale
+  final grayscale = img.grayscale(image);
+
+  // Ensure minimum DPI of 300 (approx by scaling width to A4@300DPI)
+  const targetWidth = 2480; // ~8.27 inches at 300 DPI (A4 width)
+
+  img.Image processed = grayscale;
+  if (grayscale.width < targetWidth) {
+    final scaleFactor = targetWidth / grayscale.width;
+    final newWidth = (grayscale.width * scaleFactor).round();
+    final newHeight = (grayscale.height * scaleFactor).round();
+
+    processed = img.copyResize(
+      grayscale,
+      width: newWidth,
+      height: newHeight,
+      interpolation: img.Interpolation.cubic,
+    );
+  }
+
+  // Light preprocessing
+  processed = img.contrast(processed, contrast: 110);
+
+  // Write PNG (sync)
+  File(outputPath).writeAsBytesSync(img.encodePng(processed));
+}
+
+Future<String> _tesseractOcrCompute(Map<String, Object?> args) async {
+  final token = args['rootToken'] as RootIsolateToken?;
+  if (token == null) {
+    throw Exception('RootIsolateToken is null');
+  }
+  BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+
+  final imagePath = args['imagePath'] as String;
+  final language = args['language'] as String;
+  final ocrArgs = (args['args'] as Map).cast<String, String>();
+
+  return FlutterTesseractOcr.extractText(
+    imagePath,
+    language: language,
+    args: ocrArgs,
+  );
 }

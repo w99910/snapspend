@@ -401,42 +401,42 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
 
         // Extract structured data using Llama/Qwen3
         Map<String, dynamic> extractedData;
-        try {
-          extractedData = await _ocrService.extractReceiptDataWithLlama(
-            receiptText: text,
-            onStatusUpdate: (status) {
-              print('Llama status: $status');
-              if (mounted) {
-                setState(() {
-                  _statusMessage = status;
-                });
-              }
-            },
-            onTextUpdate: (generatedText) {
-              print('Llama generating: $generatedText');
-            },
-          );
-          print('✓ Extracted data: $extractedData');
-        } catch (llamaError) {
-          print(
-            '⚠️ Llama extraction failed, falling back to enhanced parsing: $llamaError',
-          );
-          // Fallback to enhanced Thai receipt parsing if Llama fails
-          extractedData = _ocrService.extractFromThaiReceipt(text);
+        // try {
+        extractedData = await _ocrService.extractReceiptDataWithLlama(
+          receiptText: text,
+          onStatusUpdate: (status) {
+            print('Llama status: $status');
+            if (mounted) {
+              setState(() {
+                _statusMessage = status;
+              });
+            }
+          },
+          onTextUpdate: (generatedText) {
+            print('Llama generating: $generatedText');
+          },
+        );
+        print('✓ Extracted data: $extractedData');
+        // } catch (llamaError) {
+        //   print(
+        //     '⚠️ Llama extraction failed, falling back to enhanced parsing: $llamaError',
+        //   );
+        //   // Fallback to enhanced Thai receipt parsing if Llama fails
+        //   extractedData = _ocrService.extractFromThaiReceipt(text);
 
-          // If enhanced parsing also fails, use basic parser
-          if (extractedData['amount'] == 0.0 &&
-              extractedData['sender'] == 'N/A') {
-            print('⚠️ Enhanced parsing failed, using basic parser');
-            final parsedData = _ocrService.parseReceiptText(text);
-            extractedData = {
-              'sender': parsedData['merchant'] ?? 'N/A',
-              'recipient': parsedData['recipient'] ?? 'N/A',
-              'amount': parsedData['total'] ?? 0.0,
-              'time': parsedData['date'] ?? 'N/A',
-            };
-          }
-        }
+        //   // If enhanced parsing also fails, use basic parser
+        //   if (extractedData['amount'] == 0.0 &&
+        //       extractedData['sender'] == 'N/A') {
+        //     print('⚠️ Enhanced parsing failed, using basic parser');
+        //     final parsedData = _ocrService.parseReceiptText(text);
+        //     extractedData = {
+        //       'sender': parsedData['merchant'] ?? 'N/A',
+        //       'recipient': parsedData['recipient'] ?? 'N/A',
+        //       'amount': parsedData['total'] ?? 0.0,
+        //       'time': parsedData['date'] ?? 'N/A',
+        //     };
+        //   }
+        // }
 
         if (!mounted) return;
 
@@ -752,19 +752,19 @@ class _ReceiptListItemState extends State<_ReceiptListItem>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Sender (merchant)
-                    if (widget.receipt.sender != 'N/A') ...[
+                    // Recipient
+                    if (widget.receipt.recipient != 'N/A') ...[
                       Row(
                         children: [
                           const Icon(
-                            Icons.store,
+                            Icons.person_outline,
                             size: 14,
                             color: Color(0xFF4A90E2),
                           ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              widget.receipt.sender,
+                              widget.receipt.recipient,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,

@@ -1,6 +1,8 @@
 import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'dart:convert';
+import 'dart:async';
+import 'dart:isolate';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -10,13 +12,42 @@ import '../internal/llama_ffi.dart';
 /// Service class for handling Llama model operations
 /// Manages model downloading, loading, and text generation
 class LlamaService {
+  // Singleton: keep one model worker per app.
+  static final LlamaService _instance = LlamaService._internal();
+  factory LlamaService() => _instance;
+  LlamaService._internal();
+
   // Model configuration
+  // Using Qwen2.5-0.5B-Instruct: Pure instruct model (no reasoning overhead)
   static const String modelUrl =
-      'https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_0.gguf';
-  static const String modelFileName = 'Qwen3-0.6B-Q4_0.gguf';
+      'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf';
+  static const String modelFileName = 'qwen2.5-0.5b-instruct-q4_k_m.gguf';
 
   String _modelPath = '';
   bool _isModelReady = false;
+
+  // Long-lived background worker that owns llama.cpp + loaded model.
+  Isolate? _worker;
+  SendPort? _workerSendPort;
+  ReceivePort? _workerReceivePort;
+  StreamSubscription<dynamic>? _workerSub;
+  Completer<void>? _workerReadyCompleter;
+
+  int _nextRequestId = 1;
+  final Map<
+    int,
+    ({
+      Completer<String> completer,
+      Function(String)? onTextUpdate,
+      Function(String) onStatusUpdate,
+    })
+  >
+  _pending = {};
+
+  String? _workerModelPath;
+  int? _workerContextSize;
+  int? _workerBatchSize;
+  int? _workerThreads;
 
   /// Check if model is ready to use
   bool get isModelReady => _isModelReady;
@@ -116,15 +147,195 @@ class LlamaService {
     required Function(String status) onStatusUpdate,
     Function(String generatedText)? onTextUpdate,
     int maxTokens = 128,
-    int contextSize = 512,
+    int contextSize = 2048,
     int batchSize = 512,
     int threads = 4,
     bool streamOutput = true, // Enable streaming by default
+    bool runInBackground = true, // Run inference in isolate to avoid UI jank
   }) async {
     if (!_isModelReady || _modelPath.isEmpty) {
       throw Exception('Model is not ready. Please download it first.');
     }
 
+    if (!runInBackground) {
+      // Debug-only: runs on current isolate (will block UI) and reloads the model each call.
+      return _generateTextInternal(
+        prompt: prompt,
+        onStatusUpdate: onStatusUpdate,
+        onTextUpdate: onTextUpdate,
+        maxTokens: maxTokens,
+        contextSize: contextSize,
+        batchSize: batchSize,
+        threads: threads,
+        streamOutput: streamOutput,
+      );
+    }
+
+    await _ensureWorkerReady(
+      modelPath: _modelPath,
+      contextSize: contextSize,
+      batchSize: batchSize,
+      threads: threads,
+    );
+
+    final requestId = _nextRequestId++;
+    final completer = Completer<String>();
+    _pending[requestId] = (
+      completer: completer,
+      onTextUpdate: onTextUpdate,
+      onStatusUpdate: onStatusUpdate,
+    );
+
+    _workerSendPort!.send({
+      'type': 'generate',
+      'requestId': requestId,
+      'prompt': prompt,
+      'maxTokens': maxTokens,
+      'contextSize': contextSize,
+      'batchSize': batchSize,
+      'threads': threads,
+      'streamOutput': streamOutput,
+    });
+
+    return completer.future;
+  }
+
+  Future<void> _ensureWorkerReady({
+    required String modelPath,
+    required int contextSize,
+    required int batchSize,
+    required int threads,
+  }) async {
+    // Reuse existing worker if config matches.
+    if (_workerSendPort != null &&
+        _workerModelPath == modelPath &&
+        _workerContextSize == contextSize &&
+        _workerBatchSize == batchSize &&
+        _workerThreads == threads) {
+      return;
+    }
+
+    // Restart if config changed.
+    await disposeWorker();
+
+    _workerReadyCompleter = Completer<void>();
+    _workerReceivePort = ReceivePort();
+    _workerSub = _workerReceivePort!.listen(_handleWorkerMessage);
+
+    _worker = await Isolate.spawn(_llamaModelWorkerEntry, {
+      'sendPort': _workerReceivePort!.sendPort,
+      'modelPath': modelPath,
+      'contextSize': contextSize,
+      'batchSize': batchSize,
+      'threads': threads,
+    }, errorsAreFatal: true);
+
+    await _workerReadyCompleter!.future;
+    _workerModelPath = modelPath;
+    _workerContextSize = contextSize;
+    _workerBatchSize = batchSize;
+    _workerThreads = threads;
+  }
+
+  void _handleWorkerMessage(dynamic msg) {
+    if (msg is! Map) return;
+    final type = msg['type'];
+
+    if (type == 'sendPort') {
+      final sp = msg['sendPort'];
+      if (sp is SendPort) _workerSendPort = sp;
+      return;
+    }
+
+    if (type == 'ready') {
+      _workerReadyCompleter?.complete();
+      return;
+    }
+
+    final requestId = msg['requestId'];
+    if (requestId is! int) return;
+    final pending = _pending[requestId];
+    if (pending == null) return;
+
+    if (type == 'status') {
+      final value = msg['value'];
+      if (value is String) pending.onStatusUpdate(value);
+      return;
+    }
+
+    if (type == 'text') {
+      final value = msg['value'];
+      if (value is String && pending.onTextUpdate != null) {
+        pending.onTextUpdate!(value);
+      }
+      return;
+    }
+
+    if (type == 'done') {
+      final value = msg['value'];
+      _pending.remove(requestId);
+      if (!pending.completer.isCompleted) {
+        pending.completer.complete(value is String ? value : '');
+      }
+      return;
+    }
+
+    if (type == 'error') {
+      final value = msg['value'];
+      final stack = msg['stack'];
+      _pending.remove(requestId);
+      if (!pending.completer.isCompleted) {
+        pending.completer.completeError(
+          Exception(value is String ? value : 'Unknown worker error'),
+          stack is String ? StackTrace.fromString(stack) : null,
+        );
+      }
+      return;
+    }
+  }
+
+  /// Optional: dispose the long-lived model worker.
+  /// If you don't call this, the OS will reclaim memory when the app exits.
+  Future<void> disposeWorker() async {
+    for (final entry in _pending.entries) {
+      if (!entry.value.completer.isCompleted) {
+        entry.value.completer.completeError(
+          Exception('Model worker was disposed'),
+        );
+      }
+    }
+    _pending.clear();
+
+    try {
+      _workerSendPort?.send({'type': 'dispose'});
+    } catch (_) {}
+
+    await _workerSub?.cancel();
+    _workerSub = null;
+    _workerReceivePort?.close();
+    _workerReceivePort = null;
+
+    _worker?.kill(priority: Isolate.immediate);
+    _worker = null;
+    _workerSendPort = null;
+    _workerReadyCompleter = null;
+
+    _workerModelPath = null;
+    _workerContextSize = null;
+    _workerBatchSize = null;
+    _workerThreads = null;
+  }
+
+  Future<String> _generateTextInternal({
+    required String prompt,
+    required Function(String status) onStatusUpdate,
+    Function(String generatedText)? onTextUpdate,
+    int maxTokens = 128,
+    int contextSize = 2048,
+    int batchSize = 512,
+    int threads = 4,
+    bool streamOutput = true,
+  }) async {
     onStatusUpdate('Initializing llama.cpp...');
 
     // Load the library
@@ -164,6 +375,7 @@ class LlamaService {
       pathPtr.cast(),
       modelParams,
     );
+    calloc.free(pathPtr);
 
     if (model == ffi.nullptr) {
       throw Exception(
@@ -190,26 +402,29 @@ class LlamaService {
     // Get vocabulary
     final vocab = bindings.llama_model_get_vocab(model);
 
-    // Format prompt for Qwen3 chat (ChatML format)
-    // Use a more specific system prompt for receipt extraction
+    // Format prompt for Qwen2.5 instruct model (ChatML format)
+    // Use a specific system prompt for receipt extraction
     final formattedPrompt =
-        '<|im_start|>system\nYou are a JSON generator. You MUST return valid JSON objects only. Never return numbered lists, explanations, or text. Only output pure JSON.<|im_end|>\n'
+        '<|im_start|>system\nYou are a JSON generator. You MUST return valid JSON objects only. Never return numbered lists, explanations, or text. Only output pure JSON. Example output structure:{"sender": string,"recipient":string,"amount":float,"time": string}<|im_end|>\n'
         '<|im_start|>user\n$prompt<|im_end|>\n'
         '<|im_start|>assistant\n';
+    // final formattedPrompt = prompt;
 
+    print('formattedPrompt: $formattedPrompt');
     // Tokenize prompt
-    final maxPromptTokens = 512;
+    // Keep this aligned with context size to avoid failures on long OCR prompts.
+    final maxPromptTokens = contextSize;
     final tokens = calloc<llama_token>(maxPromptTokens);
 
     final promptUtf8 = formattedPrompt.toNativeUtf8();
     final nTokens = bindings.llama_tokenize(
       vocab,
       promptUtf8.cast(),
-      formattedPrompt.length,
+      utf8.encode(formattedPrompt).length,
       tokens,
       maxPromptTokens,
       true, // add_special
-      true, // parse_special
+      true, // parse_special (required for <|im_start|> / <|im_end|>)
     );
 
     calloc.free(promptUtf8);
@@ -231,13 +446,63 @@ class LlamaService {
       throw Exception('Failed to decode batch: $decodeResult');
     }
 
-    // Create sampler for generation
-    final sampler = bindings.llama_sampler_init_greedy();
+    // Create sampler with default parameters (matches llama-cli behavior)
+    final samplerParams = bindings.llama_sampler_chain_default_params();
+    samplerParams.no_perf = false; // Enable performance tracking
 
-    // Generate tokens - collect all tokens first, then decode at the end
+    final sampler = bindings.llama_sampler_chain_init(samplerParams);
+
+    // Build a sane default sampler chain (similar to llama-cli):
+    // top-k -> top-p -> temp -> dist
+    // This avoids "drifting" generations and helps EOS / <|im_end|> appear naturally.
+    bindings.llama_sampler_chain_add(
+      sampler,
+      bindings.llama_sampler_init_top_k(40),
+    );
+    bindings.llama_sampler_chain_add(
+      sampler,
+      bindings.llama_sampler_init_top_p(0.95, 1),
+    );
+    bindings.llama_sampler_chain_add(
+      sampler,
+      bindings.llama_sampler_init_temp(0.2),
+    );
+    bindings.llama_sampler_chain_add(
+      sampler,
+      bindings.llama_sampler_init_dist(0), // seed = 0
+    );
+
+    // Generate tokens - collect bytes as we go and stop on EOS / <|im_end|>
     final generatedTokens = <int>[];
     int consecutiveErrors = 0;
     const maxConsecutiveErrors = 5;
+
+    // We stop when we see these ASCII byte sequences in the output.
+    // Qwen2.5 uses ChatML <|im_end|> as the message terminator.
+    final stopSequences = <List<int>>[
+      utf8.encode('<|im_end|>'),
+      utf8.encode('</s>'),
+    ];
+
+    bool endsWithStopSequence(List<int> bytes) {
+      for (final seq in stopSequences) {
+        if (bytes.length < seq.length) continue;
+        bool matches = true;
+        for (int i = 0; i < seq.length; i++) {
+          if (bytes[bytes.length - seq.length + i] != seq[i]) {
+            matches = false;
+            break;
+          }
+        }
+        if (matches) return true;
+      }
+      return false;
+    }
+
+    // Collect raw bytes for robust UTF-8 decoding (tokens can split multi-byte chars).
+    final outBytes = <int>[];
+    final pieceBuffer = calloc<ffi.Char>(256);
+    final tokenPtr = calloc<llama_token>(1);
 
     for (int i = 0; i < maxTokens; i++) {
       // Sample next token
@@ -256,11 +521,36 @@ class LlamaService {
         onStatusUpdate('Generating... (${i + 1} tokens)');
       }
 
-      // Prepare next batch with just the new token
-      final nextBatch = bindings.llama_batch_get_one(
-        [newToken].toNativeToken(),
-        1,
+      // Convert token -> bytes and optionally stream partial output
+      final pieceLen = bindings.llama_token_to_piece(
+        vocab,
+        newToken,
+        pieceBuffer,
+        256,
+        0,
+        true, // special: render special tokens (so we can stop on <|im_end|>)
       );
+
+      if (pieceLen > 0) {
+        for (int j = 0; j < pieceLen; j++) {
+          // ffi.Char is signed on some platforms; normalize to 0..255
+          outBytes.add(pieceBuffer[j] & 0xFF);
+        }
+
+        // Stop early when we see <|im_end|> (prevents runaway generations)
+        if (endsWithStopSequence(outBytes)) {
+          break;
+        }
+
+        if (streamOutput && onTextUpdate != null && i % 4 == 0) {
+          // Decode leniently for UI updates; final decode happens below.
+          onTextUpdate(utf8.decode(outBytes, allowMalformed: true));
+        }
+      }
+
+      // Prepare next batch with just the new token
+      tokenPtr[0] = newToken;
+      final nextBatch = bindings.llama_batch_get_one(tokenPtr, 1);
 
       // Decode next token
       final result = bindings.llama_decode(ctx, nextBatch);
@@ -277,46 +567,22 @@ class LlamaService {
 
     print('Generated ${generatedTokens.length} tokens');
 
-    // Convert all tokens to text at once to avoid UTF-8 encoding issues
+    // Convert all bytes to text at once to avoid UTF-8 encoding issues
     String generatedText = '';
     try {
-      // Build text from all tokens with proper UTF-8 handling
-      final byteBuffer = <int>[];
-
-      for (final token in generatedTokens) {
-        final pieceBuffer = calloc<ffi.Char>(64);
-        final pieceLen = bindings.llama_token_to_piece(
-          vocab,
-          token,
-          pieceBuffer,
-          64,
-          0,
-          false,
-        );
-
-        if (pieceLen > 0) {
-          // Collect raw bytes
-          for (int i = 0; i < pieceLen; i++) {
-            byteBuffer.add(pieceBuffer[i]);
-          }
-        }
-
-        calloc.free(pieceBuffer);
-      }
-
-      // Convert collected bytes to UTF-8 string with error handling
-      try {
-        generatedText = utf8.decode(byteBuffer, allowMalformed: true);
-      } catch (e) {
-        print('UTF-8 decode error: $e');
-        // Fallback: decode with lenient mode
-        generatedText = String.fromCharCodes(byteBuffer, 0, byteBuffer.length);
-      }
+      generatedText = utf8.decode(outBytes, allowMalformed: true);
 
       print('Decoded text length: ${generatedText.length}');
     } catch (e) {
       print('Error converting tokens to text: $e');
     }
+
+    // Strip trailing chat terminators if present
+    generatedText = generatedText.replaceAll('<|im_end|>', '').trim();
+
+    // Free native buffers used during generation
+    calloc.free(pieceBuffer);
+    calloc.free(tokenPtr);
 
     // Cleanup
     bindings.llama_sampler_free(sampler);
@@ -341,6 +607,291 @@ class LlamaService {
     bindings.llama_free(ctx);
     bindings.llama_model_free(model);
     bindings.llama_backend_free();
+  }
+}
+
+// --------------------------
+// Long-lived model worker isolate (top-level)
+// --------------------------
+void _llamaModelWorkerEntry(Map<String, dynamic> args) {
+  _llamaModelWorkerEntryAsync(args);
+}
+
+Future<void> _llamaModelWorkerEntryAsync(Map<String, dynamic> args) async {
+  final SendPort mainSendPort = args['sendPort'] as SendPort;
+  final String modelPath = args['modelPath'] as String;
+  final int contextSize = args['contextSize'] as int;
+  final int batchSize = args['batchSize'] as int;
+  final int threads = args['threads'] as int;
+
+  final ReceivePort receivePort = ReceivePort();
+  mainSendPort.send({'type': 'sendPort', 'sendPort': receivePort.sendPort});
+
+  ffi.Pointer<llama_model> model = ffi.nullptr;
+  ffi.Pointer<llama_vocab> vocab = ffi.nullptr;
+  ffi.Pointer<llama_context> ctx = ffi.nullptr;
+  late final LlamaBindings bindings;
+  bool initialized = false;
+
+  void sendStatus(int requestId, String s) =>
+      mainSendPort.send({'type': 'status', 'requestId': requestId, 'value': s});
+  void sendText(int requestId, String s) =>
+      mainSendPort.send({'type': 'text', 'requestId': requestId, 'value': s});
+  void sendDone(int requestId, String s) =>
+      mainSendPort.send({'type': 'done', 'requestId': requestId, 'value': s});
+  void sendError(int requestId, Object e, StackTrace st) => mainSendPort.send({
+    'type': 'error',
+    'requestId': requestId,
+    'value': e.toString(),
+    'stack': st.toString(),
+  });
+
+  Future<void> cleanupAll() async {
+    try {
+      if (!initialized) return;
+      if (ctx != ffi.nullptr) {
+        bindings.llama_free(ctx);
+        ctx = ffi.nullptr;
+      }
+      if (model != ffi.nullptr) {
+        bindings.llama_model_free(model);
+        model = ffi.nullptr;
+      }
+      bindings.llama_backend_free();
+    } catch (_) {}
+  }
+
+  try {
+    // Load dynamic library
+    final ffi.DynamicLibrary dylib;
+    if (Platform.isAndroid) {
+      dylib = ffi.DynamicLibrary.open('libllama.so');
+    } else if (Platform.isLinux) {
+      dylib = ffi.DynamicLibrary.open('libllama.so');
+    } else if (Platform.isMacOS) {
+      dylib = ffi.DynamicLibrary.open('libllama.dylib');
+    } else if (Platform.isWindows) {
+      dylib = ffi.DynamicLibrary.open('llama.dll');
+    } else {
+      throw UnsupportedError('Platform not supported');
+    }
+
+    bindings = LlamaBindings(dylib);
+    initialized = true;
+    bindings.llama_backend_init();
+
+    final modelParams = bindings.llama_model_default_params();
+    modelParams.n_gpu_layers = 0;
+
+    final pathPtr = modelPath.toNativeUtf8();
+    model = bindings.llama_model_load_from_file(pathPtr.cast(), modelParams);
+    calloc.free(pathPtr);
+
+    if (model == ffi.nullptr) {
+      throw Exception('Failed to load model from $modelPath');
+    }
+
+    vocab = bindings.llama_model_get_vocab(model);
+
+    // Initial context (will be recreated per request)
+    final ctxParams = bindings.llama_context_default_params();
+    ctxParams.n_ctx = contextSize;
+    ctxParams.n_batch = batchSize;
+    ctxParams.n_threads = threads;
+    ctx = bindings.llama_new_context_with_model(model, ctxParams);
+    if (ctx == ffi.nullptr) {
+      throw Exception('Failed to create context');
+    }
+
+    mainSendPort.send({'type': 'ready'});
+  } catch (e, st) {
+    await cleanupAll();
+    sendError(-1, e, st);
+    return;
+  }
+
+  await for (final dynamic msg in receivePort) {
+    if (msg is! Map) continue;
+    final type = msg['type'];
+
+    if (type == 'dispose') {
+      await cleanupAll();
+      receivePort.close();
+      break;
+    }
+
+    if (type != 'generate') continue;
+
+    final int requestId = msg['requestId'] as int;
+    final String prompt = msg['prompt'] as String;
+    final int maxTokens = msg['maxTokens'] as int;
+    final int reqContextSize = msg['contextSize'] as int;
+    final int reqBatchSize = msg['batchSize'] as int;
+    final int reqThreads = msg['threads'] as int;
+    final bool streamOutput = msg['streamOutput'] as bool;
+
+    try {
+      sendStatus(requestId, 'Preparing context...');
+
+      // Recreate ctx each request (no KV-cache clear exposed in current bindings).
+      if (ctx != ffi.nullptr) {
+        bindings.llama_free(ctx);
+        ctx = ffi.nullptr;
+      }
+      final ctxParams = bindings.llama_context_default_params();
+      ctxParams.n_ctx = reqContextSize;
+      ctxParams.n_batch = reqBatchSize;
+      ctxParams.n_threads = reqThreads;
+      ctx = bindings.llama_new_context_with_model(model, ctxParams);
+      if (ctx == ffi.nullptr) {
+        throw Exception('Failed to create context');
+      }
+
+      sendStatus(requestId, 'Tokenizing prompt...');
+
+      final formattedPrompt =
+          '<|im_start|>system\nYou are a JSON generator. You MUST return valid JSON objects only. Never return numbered lists, explanations, or text. Only output pure JSON. Example output structure:{"sender": string,"recipient":string,"amount":float,"time": string}<|im_end|>\n'
+          '<|im_start|>user\n$prompt<|im_end|>\n'
+          '<|im_start|>assistant\n';
+
+      final maxPromptTokens = reqContextSize;
+      final tokens = calloc<llama_token>(maxPromptTokens);
+
+      final promptUtf8 = formattedPrompt.toNativeUtf8();
+      final nTokens = bindings.llama_tokenize(
+        vocab,
+        promptUtf8.cast(),
+        utf8.encode(formattedPrompt).length,
+        tokens,
+        maxPromptTokens,
+        true,
+        true,
+      );
+      calloc.free(promptUtf8);
+
+      if (nTokens < 0) {
+        calloc.free(tokens);
+        throw Exception('Failed to tokenize (buffer too small)');
+      }
+
+      sendStatus(
+        requestId,
+        'Generating response... ($nTokens tokens in prompt)',
+      );
+
+      final batch = bindings.llama_batch_get_one(tokens, nTokens);
+      final decodeResult = bindings.llama_decode(ctx, batch);
+      if (decodeResult != 0) {
+        calloc.free(tokens);
+        throw Exception('Failed to decode batch: $decodeResult');
+      }
+
+      final samplerParams = bindings.llama_sampler_chain_default_params();
+      samplerParams.no_perf = false;
+      final sampler = bindings.llama_sampler_chain_init(samplerParams);
+      bindings.llama_sampler_chain_add(
+        sampler,
+        bindings.llama_sampler_init_top_k(40),
+      );
+      bindings.llama_sampler_chain_add(
+        sampler,
+        bindings.llama_sampler_init_top_p(0.95, 1),
+      );
+      bindings.llama_sampler_chain_add(
+        sampler,
+        bindings.llama_sampler_init_temp(0.2),
+      );
+      bindings.llama_sampler_chain_add(
+        sampler,
+        bindings.llama_sampler_init_dist(0),
+      );
+
+      final stopSequences = <List<int>>[
+        utf8.encode('<|im_end|>'),
+        utf8.encode('</s>'),
+      ];
+      bool endsWithStopSequence(List<int> bytes) {
+        for (final seq in stopSequences) {
+          if (bytes.length < seq.length) continue;
+          bool matches = true;
+          for (int i = 0; i < seq.length; i++) {
+            if (bytes[bytes.length - seq.length + i] != seq[i]) {
+              matches = false;
+              break;
+            }
+          }
+          if (matches) return true;
+        }
+        return false;
+      }
+
+      final outBytes = <int>[];
+      final pieceBuffer = calloc<ffi.Char>(256);
+      final tokenPtr = calloc<llama_token>(1);
+
+      int consecutiveErrors = 0;
+      const maxConsecutiveErrors = 5;
+
+      for (int i = 0; i < maxTokens; i++) {
+        final newToken = bindings.llama_sampler_sample(sampler, ctx, -1);
+
+        if (newToken == bindings.llama_token_eos(vocab)) {
+          break;
+        }
+
+        if (streamOutput && i % 10 == 0) {
+          sendStatus(requestId, 'Generating... (${i + 1} tokens)');
+        }
+
+        final pieceLen = bindings.llama_token_to_piece(
+          vocab,
+          newToken,
+          pieceBuffer,
+          256,
+          0,
+          true,
+        );
+
+        if (pieceLen > 0) {
+          for (int j = 0; j < pieceLen; j++) {
+            outBytes.add(pieceBuffer[j] & 0xFF);
+          }
+
+          if (endsWithStopSequence(outBytes)) {
+            break;
+          }
+
+          if (streamOutput && i % 4 == 0) {
+            sendText(requestId, utf8.decode(outBytes, allowMalformed: true));
+          }
+        }
+
+        tokenPtr[0] = newToken;
+        final nextBatch = bindings.llama_batch_get_one(tokenPtr, 1);
+        final result = bindings.llama_decode(ctx, nextBatch);
+        if (result != 0) {
+          consecutiveErrors++;
+          if (consecutiveErrors >= maxConsecutiveErrors) {
+            break;
+          }
+        } else {
+          consecutiveErrors = 0;
+        }
+      }
+
+      var generatedText = utf8.decode(outBytes, allowMalformed: true);
+      generatedText = generatedText.replaceAll('<|im_end|>', '').trim();
+
+      calloc.free(pieceBuffer);
+      calloc.free(tokenPtr);
+      bindings.llama_sampler_free(sampler);
+      calloc.free(tokens);
+
+      sendStatus(requestId, 'Generation complete!');
+      sendDone(requestId, generatedText);
+    } catch (e, st) {
+      sendError(requestId, e, st);
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'download_model_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
@@ -51,11 +52,17 @@ class _WelcomePageState extends State<WelcomePage> {
         curve: Curves.easeInOut,
       );
     } else {
-      // Navigate to download model page
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const DownloadModelPage()),
-      );
+      _completeOnboardingAndContinue();
     }
+  }
+
+  Future<void> _completeOnboardingAndContinue() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_complete', true);
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const DownloadModelPage()),
+    );
   }
 
   @override

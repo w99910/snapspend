@@ -149,3 +149,7 @@ If you want to add back single-receipt scanning capability:
 3. Keep the automatic batch scanning as the primary flow
 
 The code for manual scanning is still in git history if needed.
+
+
+
+

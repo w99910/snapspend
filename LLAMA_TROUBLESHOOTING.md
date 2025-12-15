@@ -394,3 +394,7 @@ For a receipt app, **on-device is recommended** for privacy.
 - [GGUF Models](https://huggingface.co/models?library=gguf)
 - [Qwen3 Documentation](https://github.com/QwenLM/Qwen)
 - [Receipt OCR Best Practices](https://www.microsoft.com/en-us/research/project/receipt-ocr/)
+
+
+
+

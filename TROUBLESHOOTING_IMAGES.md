@@ -225,3 +225,7 @@ If none of these solutions work, please provide:
 2. Output of `adb shell ls -l /storage/emulated/0/DCIM/Receipts/`
 3. Android version
 4. Device model
+
+
+
+

@@ -133,3 +133,7 @@ Once permission is granted:
 5. Extract structured data
 6. Save to SQLite database
 7. Show list of processed receipts
+
+
+
+

@@ -156,3 +156,7 @@ flutter run
    - 🔍 = Strategy being tried
 
 The code is correct now - it will find your Receipts folder in Strategy 2. You just need to run it and see the output!
+
+
+
+
