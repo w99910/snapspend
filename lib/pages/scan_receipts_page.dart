@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'scanning_receipts_page.dart';
 
 class ScanReceiptsPage extends StatefulWidget {
-  const ScanReceiptsPage({super.key});
+  final AssetPathEntity? selectedAlbum;
+  final String? selectedAlbumName;
+
+  const ScanReceiptsPage({
+    super.key,
+    this.selectedAlbum,
+    this.selectedAlbumName,
+  });
 
   @override
   State<ScanReceiptsPage> createState() => _ScanReceiptsPageState();
@@ -12,12 +20,21 @@ class _ScanReceiptsPageState extends State<ScanReceiptsPage> {
   void _getStarted() {
     // Navigate to automatic scanning page
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const ScanningReceiptsPage()),
+      MaterialPageRoute(
+        builder: (context) => ScanningReceiptsPage(
+          selectedAlbum: widget.selectedAlbum,
+          selectedAlbumName: widget.selectedAlbumName,
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final albumLabel = (widget.selectedAlbumName?.trim().isNotEmpty ?? false)
+        ? widget.selectedAlbumName!.trim()
+        : null;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A1A2F),
       body: SafeArea(
@@ -127,7 +144,9 @@ class _ScanReceiptsPageState extends State<ScanReceiptsPage> {
 
                     // Description
                     Text(
-                      "We'll scan the first 10 recent photos from your camera or DCIM folder",
+                      albumLabel == null
+                          ? "We'll scan up to 10 recent photos from your camera/DCIM or Recents"
+                          : "We'll scan up to 10 recent photos from \"$albumLabel\"",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withOpacity(0.7),

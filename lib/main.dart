@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:snapspend/pages/welcome_page.dart';
 import 'package:snapspend/pages/expenses_summary_page.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // final ocrService = OcrService();
   // await ocrService.llamaService.checkModelExists();
@@ -67,6 +67,7 @@ class _AppStartRouter extends StatelessWidget {
         }
 
         final isFirstRun = snapshot.data!;
+        return const WelcomePage();
         return isFirstRun ? const WelcomePage() : const ExpensesSummaryPage();
       },
     );

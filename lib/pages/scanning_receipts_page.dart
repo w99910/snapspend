@@ -12,7 +12,14 @@ import '../models/receipt.dart';
 import 'expenses_summary_page.dart';
 
 class ScanningReceiptsPage extends StatefulWidget {
-  const ScanningReceiptsPage({super.key});
+  final AssetPathEntity? selectedAlbum;
+  final String? selectedAlbumName;
+
+  const ScanningReceiptsPage({
+    super.key,
+    this.selectedAlbum,
+    this.selectedAlbumName,
+  });
 
   @override
   State<ScanningReceiptsPage> createState() => _ScanningReceiptsPageState();
@@ -23,7 +30,6 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
   int _currentScanning = 0;
   int _totalReceipts = 0;
   final List<ScannedReceipt> _scannedReceipts = [];
-  bool _isComplete = false;
   String _statusMessage = 'Preparing to scan...';
 
   late AnimationController _pulseController;
@@ -110,6 +116,24 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
         print('  Album $i: "${albums[i].name}" - $count images');
       }
 
+      // If user explicitly selected an album, scan ONLY that album.
+      if (widget.selectedAlbum != null) {
+        final album = widget.selectedAlbum!;
+        final count = await album.assetCountAsync;
+        print('📁 Using selected album: "${album.name}" - $count images');
+
+        final end = count < 10 ? count : 10;
+        if (end <= 0) return [];
+
+        final assets = await album.getAssetListRange(start: 0, end: end);
+        final files = <File>[];
+        for (final asset in assets) {
+          final file = await asset.file;
+          if (file != null) files.add(file);
+        }
+        return files;
+      }
+
       List<File> receiptFiles = [];
 
       // Strategy 1: Try Camera/DCIM folders first (most common location)
@@ -126,7 +150,7 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
           if (count > 0) {
             final List<AssetEntity> assets = await album.getAssetListRange(
               start: 0,
-              end: 4, // Limit to 4 receipts
+              end: count < 10 ? count : 10, // Limit to 10 receipts
             );
             print('  Retrieved ${assets.length} assets');
 
@@ -159,7 +183,7 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
           if (count > 0) {
             final List<AssetEntity> assets = await album.getAssetListRange(
               start: 0,
-              end: 4, // Limit to 4 receipts
+              end: count < 10 ? count : 10, // Limit to 10 receipts
             );
             print('  Retrieved ${assets.length} assets');
 
@@ -191,7 +215,7 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
               print('✓ Using: "${album.name}" with $count images');
               final List<AssetEntity> assets = await album.getAssetListRange(
                 start: 0,
-                end: 4, // Limit to 4 receipts
+                end: count < 10 ? count : 10, // Limit to 10 receipts
               );
 
               for (final asset in assets) {
@@ -216,7 +240,7 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
             print('✓ Using: "${album.name}" with $count images');
             final List<AssetEntity> assets = await album.getAssetListRange(
               start: 0,
-              end: 4, // Limit to 4 receipts
+              end: count < 10 ? count : 10, // Limit to 10 receipts
             );
 
             for (final asset in assets) {
@@ -353,7 +377,6 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
       if (mounted) {
         setState(() {
           _statusMessage = 'No images found in gallery';
-          _isComplete = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -505,10 +528,12 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
 
     inspect(_scannedReceipts);
 
+    // Release PaddleOCR process (models no longer needed)
+    await _ocrService.paddleOcrService.release();
+
     // All done
     if (mounted) {
       setState(() {
-        _isComplete = true;
         _statusMessage = 'Scanning complete!';
       });
 

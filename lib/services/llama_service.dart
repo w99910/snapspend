@@ -405,7 +405,16 @@ class LlamaService {
     // Format prompt for Qwen2.5 instruct model (ChatML format)
     // Use a specific system prompt for receipt extraction
     final formattedPrompt =
-        '<|im_start|>system\nYou are a JSON generator. You MUST return valid JSON objects only. Never return numbered lists, explanations, or text. Only output pure JSON. Example output structure:{"sender": string,"recipient":string,"amount":float,"time": string}<|im_end|>\n'
+        '<|im_start|>system\n'
+        'You extract receipt/payment information.\n'
+        'Return ONLY one valid JSON object (no code fences, no extra text).\n'
+        'Schema (keys must be exactly these, in English):\n'
+        '{"sender":"N/A","recipient":"N/A","amount":0.0,"time":"N/A"}\n'
+        'Rules:\n'
+        '- sender/recipient/time are strings\n'
+        '- amount is a number (no quotes)\n'
+        '- If unknown: use "N/A" and amount 0.0\n'
+        '<|im_end|>\n'
         '<|im_start|>user\n$prompt<|im_end|>\n'
         '<|im_start|>assistant\n';
     // final formattedPrompt = prompt;
@@ -750,7 +759,16 @@ Future<void> _llamaModelWorkerEntryAsync(Map<String, dynamic> args) async {
       sendStatus(requestId, 'Tokenizing prompt...');
 
       final formattedPrompt =
-          '<|im_start|>system\nYou are a JSON generator. You MUST return valid JSON objects only. Never return numbered lists, explanations, or text. Only output pure JSON. Example output structure:{"sender": string,"recipient":string,"amount":float,"time": string}<|im_end|>\n'
+          '<|im_start|>system\n'
+          'You extract receipt/payment information.\n'
+          'Return ONLY one valid JSON object (no code fences, no extra text).\n'
+          'Schema (keys must be exactly these, in English):\n'
+          '{"sender":"N/A","recipient":"N/A","amount":0.0,"time":"N/A"}\n'
+          'Rules:\n'
+          '- sender/recipient/time are strings\n'
+          '- amount is a number (no quotes)\n'
+          '- If unknown: use "N/A" and amount 0.0\n'
+          '<|im_end|>\n'
           '<|im_start|>user\n$prompt<|im_end|>\n'
           '<|im_start|>assistant\n';
 
@@ -888,6 +906,11 @@ Future<void> _llamaModelWorkerEntryAsync(Map<String, dynamic> args) async {
       calloc.free(tokens);
 
       sendStatus(requestId, 'Generation complete!');
+      // Keep behavior consistent with non-worker path: callers that rely on
+      // onTextUpdate should still get the final output when streamOutput=false.
+      if (!streamOutput) {
+        sendText(requestId, generatedText);
+      }
       sendDone(requestId, generatedText);
     } catch (e, st) {
       sendError(requestId, e, st);

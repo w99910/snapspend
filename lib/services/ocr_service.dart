@@ -9,12 +9,17 @@ import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'llama_service.dart';
+import 'paddle_ocr_service.dart';
 
 class OcrService {
   final LlamaService _llamaService = LlamaService();
+  final PaddleOcrService _paddleOcrService = PaddleOcrService();
 
   /// Get access to the Llama service for model management
   LlamaService get llamaService => _llamaService;
+
+  /// Get access to the PaddleOCR service
+  PaddleOcrService get paddleOcrService => _paddleOcrService;
 
   /// Preprocesses an image for better OCR results
   /// - Converts to grayscale
@@ -161,8 +166,8 @@ class OcrService {
     return (1.0 / (2.0 * math.pi * sigma)) * math.exp(-x / (2.0 * sigma));
   }
 
-  /// Scans a receipt image with Tesseract OCR
-  /// Returns the extracted text
+  /// Scans a receipt image using PaddleOCR (primary) with Tesseract fallback.
+  /// Returns the extracted text.
   Future<String> scanReceipt(
     String imagePath, {
     bool preprocessInBackground = true,
@@ -170,6 +175,57 @@ class OcrService {
   }) async {
     try {
       print('Starting OCR scan for: $imagePath');
+
+      // Try PaddleOCR first (better for Thai text)
+      try {
+        final paddleText = await scanReceiptWithPaddleOCR(imagePath);
+        if (paddleText.trim().isNotEmpty) {
+          return paddleText;
+        }
+        print('PaddleOCR returned empty text, falling back to Tesseract');
+      } catch (e) {
+        print('PaddleOCR failed, falling back to Tesseract: $e');
+      }
+
+      // Fallback to Tesseract
+      return await scanReceiptWithTesseract(
+        imagePath,
+        preprocessInBackground: preprocessInBackground,
+        ocrInBackground: ocrInBackground,
+      );
+    } catch (e) {
+      print('Error scanning receipt: $e');
+      rethrow;
+    }
+  }
+
+  /// Scans a receipt image using PaddleOCR (Thai-optimized PP-OCRv5).
+  /// Returns the extracted text.
+  Future<String> scanReceiptWithPaddleOCR(String imagePath) async {
+    print('Running PaddleOCR on: $imagePath');
+
+    if (!_paddleOcrService.isInitialized) {
+      print('Initializing PaddleOCR pipeline...');
+      await _paddleOcrService.init();
+    }
+
+    final results = await _paddleOcrService.runOCR(imagePath);
+    final text = results.map((r) => r.text).join('\n');
+    final cleanedText = _postProcessOcrText(text);
+
+    print('$imagePath PaddleOCR Text:\n$cleanedText');
+    return cleanedText;
+  }
+
+  /// Scans a receipt image with Tesseract OCR.
+  /// Returns the extracted text.
+  Future<String> scanReceiptWithTesseract(
+    String imagePath, {
+    bool preprocessInBackground = true,
+    bool ocrInBackground = true,
+  }) async {
+    try {
+      print('Running Tesseract OCR on: $imagePath');
 
       // Preprocess the image for better OCR results
       print('Preprocessing image...');
@@ -181,16 +237,14 @@ class OcrService {
       // Perform OCR on the preprocessed image
       print('Running Tesseract OCR...');
       final ocrArgs = <String, String>{
-        "psm":
-            "3", // Fully automatic page segmentation (works best for mixed content)
-        "oem": "1", // Neural nets LSTM engine only
+        "psm": "3",
+        "oem": "1",
         "preserve_interword_spaces": "1",
       };
 
       String text;
       RootIsolateToken? rootToken;
       if (ocrInBackground) {
-        // RootIsolateToken.instance can throw if bindings weren't initialized.
         try {
           rootToken = RootIsolateToken.instance;
         } catch (e) {
@@ -199,10 +253,6 @@ class OcrService {
       }
 
       if (ocrInBackground && rootToken != null) {
-        // NOTE: Calling MethodChannel plugins from background isolates requires
-        // BackgroundIsolateBinaryMessenger.ensureInitialized(rootToken).
-        // If this fails on a given platform/plugin version, we'll fall back to
-        // running on the main isolate.
         try {
           text = await compute(_tesseractOcrCompute, <String, Object?>{
             'rootToken': rootToken,
@@ -214,36 +264,31 @@ class OcrService {
           print('Background OCR failed, falling back to main isolate: $e');
           text = await FlutterTesseractOcr.extractText(
             processedPath,
-            language:
-                'tha+eng', // Thai first for better Thai character recognition
+            language: 'tha+eng',
             args: ocrArgs,
           );
         }
       } else {
         text = await FlutterTesseractOcr.extractText(
           processedPath,
-          language:
-              'tha+eng', // Thai first for better Thai character recognition
+          language: 'tha+eng',
           args: ocrArgs,
         );
       }
 
-      // Post-process the OCR text to fix common mistakes
       final cleanedText = _postProcessOcrText(text);
 
-      print('${imagePath} OCR Text:\n$cleanedText');
+      print('$imagePath Tesseract Text:\n$cleanedText');
 
-      // Clean up the preprocessed temporary file
       try {
         await File(processedPath).delete();
-        print('Cleaned up temporary preprocessed file');
       } catch (e) {
         print('Warning: Could not delete temporary file: $e');
       }
 
       return cleanedText;
     } catch (e) {
-      print('Error scanning receipt: $e');
+      print('Error in Tesseract OCR: $e');
       rethrow;
     }
   }
@@ -392,7 +437,7 @@ class OcrService {
 
       // Generate response with Llama
       String generatedJson = '';
-      await _llamaService.generateText(
+      final generatedText = await _llamaService.generateText(
         prompt: receiptText,
         onStatusUpdate: (status) {
           print('Llama status: $status');
@@ -411,6 +456,12 @@ class OcrService {
         streamOutput: false,
         threads: 4,
       );
+
+      // In background isolate mode with streamOutput=false, onTextUpdate may never fire.
+      // Always prefer the final returned text.
+      if (generatedText.trim().isNotEmpty) {
+        generatedJson = generatedText;
+      }
 
       print('🎯 Generated response:\n$generatedJson');
 
@@ -522,6 +573,33 @@ Now extract and output JSON:''';
     );
     final matches = jsonPattern.allMatches(cleaned);
 
+    // Repair common "almost JSON" issues produced by LLMs (e.g. `"x" + ""`).
+    String repairJson(String s) {
+      var out = s;
+
+      // Remove empty-string concatenations: `"foo" + ""` or `"foo"+"")`
+      // Example seen: {"time":"12:19 U. "+""}
+      out = out.replaceAll(RegExp(r'"\s*\+\s*""'), '"');
+      out = out.replaceAll(RegExp(r"'\s*\+\s*''"), "'");
+
+      // Merge simple string concatenations: "a" + "b"  -> "ab"
+      // Run a few passes in case the model chained them.
+      final concatDouble = RegExp(
+        r'"([^"\\]*(?:\\.[^"\\]*)*)"\s*\+\s*"([^"\\]*(?:\\.[^"\\]*)*)"',
+      );
+      for (int i = 0; i < 5; i++) {
+        final next = out.replaceAllMapped(concatDouble, (m) {
+          final a = m.group(1) ?? '';
+          final b = m.group(2) ?? '';
+          return '"$a$b"';
+        });
+        if (next == out) break;
+        out = next;
+      }
+
+      return out;
+    }
+
     // First try: look for complete JSON objects
     for (final match in matches) {
       try {
@@ -531,10 +609,11 @@ Now extract and output JSON:''';
           if (jsonStr.contains('sender') ||
               jsonStr.contains('amount') ||
               jsonStr.contains('time')) {
+            final repairedJsonStr = repairJson(jsonStr);
             print(
               '✓ Found potential JSON: ${jsonStr.substring(0, jsonStr.length > 100 ? 100 : jsonStr.length)}...',
             );
-            final parsed = json.decode(jsonStr);
+            final parsed = json.decode(repairedJsonStr);
             if (parsed is Map<String, dynamic>) {
               final validated = _validateAndNormalizeReceiptData(parsed);
               if (validated != null) {
@@ -558,7 +637,7 @@ Now extract and output JSON:''';
       final trimmed = line.trim();
       if (trimmed.startsWith('{') && trimmed.contains('}')) {
         try {
-          final parsed = json.decode(trimmed);
+          final parsed = json.decode(repairJson(trimmed));
           if (parsed is Map<String, dynamic>) {
             print('✓ Parsed JSON from line');
             final validated = _validateAndNormalizeReceiptData(parsed);
@@ -574,7 +653,7 @@ Now extract and output JSON:''';
 
     // Third try: try to extract JSON from the entire response
     try {
-      final parsed = json.decode(cleaned);
+      final parsed = json.decode(repairJson(cleaned));
       if (parsed is Map<String, dynamic>) {
         print('✓ Parsed JSON from entire response');
         final validated = _validateAndNormalizeReceiptData(parsed);
