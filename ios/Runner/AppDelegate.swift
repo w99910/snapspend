@@ -8,6 +8,7 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    PaddleOcrPlugin.register(with: self.registrar(forPlugin: "PaddleOcrPlugin")!)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

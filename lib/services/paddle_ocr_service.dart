@@ -14,6 +14,7 @@ class PaddleOcrResult {
 
 class PaddleOcrService {
   static const _channel = MethodChannel('com.example.snapspend/native_info');
+  static const _ocrChannel = MethodChannel('com.example.snapspend/paddle_ocr');
 
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
@@ -21,7 +22,7 @@ class PaddleOcrService {
   String? _nativeLibDir;
   String? _dataDir;
 
-  // Persistent process for batch mode
+  // Persistent process for batch mode (Android only)
   Process? _process;
   StreamSubscription<String>? _stdoutSub;
   StreamSubscription<String>? _stderrSub;
@@ -67,6 +68,29 @@ class PaddleOcrService {
   Future<void> init() async {
     if (_isInitialized) return;
 
+    if (Platform.isIOS) {
+      await _initIOS();
+    } else {
+      await _initAndroid();
+    }
+  }
+
+  Future<void> _initIOS() async {
+    print('PaddleOCR: initializing on iOS via MethodChannel...');
+
+    await _ocrChannel.invokeMethod('init', {
+      'detModel': 'assets/models/th_PP-OCRv5_mobile_det.nb',
+      'recModel': 'assets/models/th_PP-OCRv5_mobile_rec.nb',
+      'clsModel': 'assets/models/PP-LCNet_x0_25_textline_ori.nb',
+      'configPath': 'assets/models/config.txt',
+      'labelPath': 'assets/labels/th_ppocr_keys.txt',
+    });
+
+    _isInitialized = true;
+    print('PaddleOCR: iOS pipeline ready');
+  }
+
+  Future<void> _initAndroid() async {
     _nativeLibDir = await _channel.invokeMethod<String>('getNativeLibDir');
     print('PaddleOCR: nativeLibDir = $_nativeLibDir');
 
@@ -146,6 +170,36 @@ class PaddleOcrService {
   Future<List<PaddleOcrResult>> runOCR(String imagePath) async {
     if (!_isInitialized) await init();
 
+    if (Platform.isIOS) {
+      return _runOCRIOS(imagePath);
+    } else {
+      return _runOCRAndroid(imagePath);
+    }
+  }
+
+  Future<List<PaddleOcrResult>> _runOCRIOS(String imagePath) async {
+    print('PaddleOCR: processing $imagePath (iOS)');
+
+    final List<dynamic> rawResults = await _ocrChannel.invokeMethod('runOCR', {
+      'imagePath': imagePath,
+    });
+
+    final results = <PaddleOcrResult>[];
+    for (final item in rawResults) {
+      final map = Map<String, dynamic>.from(item as Map);
+      results.add(
+        PaddleOcrResult(
+          text: map['text'] as String? ?? '',
+          score: (map['score'] as num?)?.toDouble() ?? 0.0,
+        ),
+      );
+    }
+
+    print('PaddleOCR: got ${results.length} lines from $imagePath');
+    return results;
+  }
+
+  Future<List<PaddleOcrResult>> _runOCRAndroid(String imagePath) async {
     if (_pendingResult != null) {
       throw StateError('Another OCR call is already in progress');
     }
@@ -176,6 +230,24 @@ class PaddleOcrService {
 
   /// Release the persistent process. Call when batch processing is done.
   Future<void> release() async {
+    if (Platform.isIOS) {
+      await _releaseIOS();
+    } else {
+      await _releaseAndroid();
+    }
+  }
+
+  Future<void> _releaseIOS() async {
+    if (_isInitialized) {
+      try {
+        await _ocrChannel.invokeMethod('release');
+      } catch (_) {}
+    }
+    _isInitialized = false;
+    print('PaddleOCR: released (iOS)');
+  }
+
+  Future<void> _releaseAndroid() async {
     if (_process != null) {
       try {
         _process!.stdin.writeln('__EXIT__');

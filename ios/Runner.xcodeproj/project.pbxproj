@@ -7,13 +7,26 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00CA03D3E4E34AEDAD95E6FA /* libpaddle_api_light_bundled.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 62F2E1D328078C3C0A092AF1 /* libpaddle_api_light_bundled.a */; };
+		04D03BE69462D0FB0BC5DADD /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D20CD76B5C4E6B5369A79B7E /* Pods_RunnerTests.framework */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
+		14BD0BBD19D9A58EA4AE5507 /* utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 10974A4C6AB216341FCA0ADE /* utils.cc */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
+		378B0072AC63040695FF6965 /* libpaddle_api_light_bundled.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F38274818FB918F2F3DB0A30 /* libpaddle_api_light_bundled.a */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		40A1396C9EFC303884DD606C /* rec_process.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1A3F47CBA96789D9F15371D0 /* rec_process.cc */; };
+		68DB6EDABA517AD8F825BFA2 /* cls_process.cc in Sources */ = {isa = PBXBuildFile; fileRef = 58242FFED36222AB06342EC5 /* cls_process.cc */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		845B3BE5E9C11ADBD596440C /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D499DB09AB71CE712B6D9BEF /* opencv2.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		989CFBFEA73D15BAE13CCB55 /* pipeline.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2B1777C499F1CE2D69922DEB /* pipeline.cc */; };
+		ADA27E22FB90DF61DE70ABED /* db_post_process.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9160FCCF7C5AF718C9B171DC /* db_post_process.cc */; };
+		C6B55978E4516E4EED64349B /* clipper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0A574DEB60D046995505B9F2 /* clipper.cpp */; };
+		D1646E2A1F0BBE34BC92F654 /* PaddleOcrPlugin.mm in Sources */ = {isa = PBXBuildFile; fileRef = B97CCA013C688C67DB7BBBCF /* PaddleOcrPlugin.mm */; };
+		E37B3F1C4F85AD6F12D52640 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ACA8695E3CB800E3BAFBA8F6 /* Pods_Runner.framework */; };
+		E824C9E2D8EF0DB5EC9DBCCC /* det_process.cc in Sources */ = {isa = PBXBuildFile; fileRef = A9EFD9D579747E380C31F6CC /* det_process.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,14 +53,32 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		05728553FF7FD835A4E56205 /* pipeline.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = pipeline.h; sourceTree = "<group>"; };
+		0A574DEB60D046995505B9F2 /* clipper.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = clipper.cpp; sourceTree = "<group>"; };
+		0A59A44D28ACF56D9848F3EF /* paddle_image_preprocess.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = paddle_image_preprocess.h; sourceTree = "<group>"; };
+		10974A4C6AB216341FCA0ADE /* utils.cc */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cc; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		1A3F47CBA96789D9F15371D0 /* rec_process.cc */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = rec_process.cc; sourceTree = "<group>"; };
+		1B2C1039BFD9E839F3DD531A /* det_process.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = det_process.h; sourceTree = "<group>"; };
+		1C8804843716F6E690145EB1 /* paddle_use_ops.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = paddle_use_ops.h; sourceTree = "<group>"; };
+		22036FAF1BCC6364B177FEF3 /* db_post_process.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = db_post_process.h; sourceTree = "<group>"; };
+		25BACA0B1A25CC1AC3E59158 /* timer.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = timer.h; sourceTree = "<group>"; };
+		2B1777C499F1CE2D69922DEB /* pipeline.cc */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = pipeline.cc; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3A840C26FB457B22C5500528 /* clipper.hpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.h; path = clipper.hpp; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
+		3CEB10CB382457D2A2D65DB4 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
+		4C75F65B9C8FD3235663B821 /* paddle_lite_factory_helper.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = paddle_lite_factory_helper.h; sourceTree = "<group>"; };
+		4F7C07EF1FBFC2437A2543D6 /* utils.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
+		58242FFED36222AB06342EC5 /* cls_process.cc */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = cls_process.cc; sourceTree = "<group>"; };
+		60A66B8FB24585D2F7267B3D /* paddle_use_kernels.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = paddle_use_kernels.h; sourceTree = "<group>"; };
+		62F2E1D328078C3C0A092AF1 /* libpaddle_api_light_bundled.a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = archive.ar; path = libpaddle_api_light_bundled.a; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		9160FCCF7C5AF718C9B171DC /* db_post_process.cc */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = db_post_process.cc; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -55,13 +86,42 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A9EFD9D579747E380C31F6CC /* det_process.cc */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = det_process.cc; sourceTree = "<group>"; };
+		ACA8695E3CB800E3BAFBA8F6 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		AEABFDC63A2FBB2283D7E433 /* paddle_api.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = paddle_api.h; sourceTree = "<group>"; };
+		B5257B866753D347C493039E /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
+		B7BA34EA73ECF7E80CDB8FB0 /* rec_process.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = rec_process.h; sourceTree = "<group>"; };
+		B7ECC1E4F463AA85C5108022 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
+		B97CCA013C688C67DB7BBBCF /* PaddleOcrPlugin.mm */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.objcpp; path = PaddleOcrPlugin.mm; sourceTree = "<group>"; };
+		D15248E0478F845CFB8B1C84 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
+		D20CD76B5C4E6B5369A79B7E /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D27090A0105345A78FB136AA /* cls_process.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = cls_process.h; sourceTree = "<group>"; };
+		D499DB09AB71CE712B6D9BEF /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = opencv2.framework; sourceTree = "<group>"; };
+		D7A2BFB140B90AF8B3BEB829 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
+		DCDE67F01809C47396268120 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
+		DF53F0EFE619D4C53785F55E /* paddle_place.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = paddle_place.h; sourceTree = "<group>"; };
+		E6313C5B8C8EFAE2EDE9A441 /* PaddleOcrPlugin.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = PaddleOcrPlugin.h; sourceTree = "<group>"; };
+		F38274818FB918F2F3DB0A30 /* libpaddle_api_light_bundled.a */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = archive.ar; path = libpaddle_api_light_bundled.a; sourceTree = "<group>"; };
+		F3F6B6DC86B3A6E2A0A431BB /* paddle_use_passes.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = paddle_use_passes.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		37AE2F3776A1BF040CB13D70 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04D03BE69462D0FB0BC5DADD /* Pods_RunnerTests.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EB1CF9000F007C117D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				378B0072AC63040695FF6965 /* libpaddle_api_light_bundled.a in Frameworks */,
+				00CA03D3E4E34AEDAD95E6FA /* libpaddle_api_light_bundled.a in Frameworks */,
+				845B3BE5E9C11ADBD596440C /* opencv2.framework in Frameworks */,
+				E37B3F1C4F85AD6F12D52640 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +134,54 @@
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
 			);
 			path = RunnerTests;
+			sourceTree = "<group>";
+		};
+		37034A902F4EFB6D000120D7 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				F38274818FB918F2F3DB0A30 /* libpaddle_api_light_bundled.a */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
+		3AD60423043017A703AA92FD /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				62F2E1D328078C3C0A092AF1 /* libpaddle_api_light_bundled.a */,
+			);
+			path = lib;
+			sourceTree = "<group>";
+		};
+		61ABC3A3F21DF596216D7EB4 /* third-party */ = {
+			isa = PBXGroup;
+			children = (
+				F48149938D7DD49016CF696B /* PaddleLite */,
+				D499DB09AB71CE712B6D9BEF /* opencv2.framework */,
+			);
+			path = "third-party";
+			sourceTree = "<group>";
+		};
+		684FBC13777C8A7369B34C10 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				ACA8695E3CB800E3BAFBA8F6 /* Pods_Runner.framework */,
+				D20CD76B5C4E6B5369A79B7E /* Pods_RunnerTests.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		951460D10184E73CF8C4BAB1 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				AEABFDC63A2FBB2283D7E433 /* paddle_api.h */,
+				0A59A44D28ACF56D9848F3EF /* paddle_image_preprocess.h */,
+				4C75F65B9C8FD3235663B821 /* paddle_lite_factory_helper.h */,
+				DF53F0EFE619D4C53785F55E /* paddle_place.h */,
+				60A66B8FB24585D2F7267B3D /* paddle_use_kernels.h */,
+				1C8804843716F6E690145EB1 /* paddle_use_ops.h */,
+				F3F6B6DC86B3A6E2A0A431BB /* paddle_use_passes.h */,
+			);
+			path = include;
 			sourceTree = "<group>";
 		};
 		9740EEB11CF90186004384FC /* Flutter */ = {
@@ -94,6 +202,9 @@
 				97C146F01CF9000F007C117D /* Runner */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
+				A62B837B550A0320680569CA /* Pods */,
+				684FBC13777C8A7369B34C10 /* Frameworks */,
+				37034A902F4EFB6D000120D7 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -117,8 +228,56 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				C293DF51916F1A91BF5525C9 /* PaddleOCR */,
+				61ABC3A3F21DF596216D7EB4 /* third-party */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		A62B837B550A0320680569CA /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				DCDE67F01809C47396268120 /* Pods-Runner.debug.xcconfig */,
+				D15248E0478F845CFB8B1C84 /* Pods-Runner.release.xcconfig */,
+				B5257B866753D347C493039E /* Pods-Runner.profile.xcconfig */,
+				D7A2BFB140B90AF8B3BEB829 /* Pods-RunnerTests.debug.xcconfig */,
+				3CEB10CB382457D2A2D65DB4 /* Pods-RunnerTests.release.xcconfig */,
+				B7ECC1E4F463AA85C5108022 /* Pods-RunnerTests.profile.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		C293DF51916F1A91BF5525C9 /* PaddleOCR */ = {
+			isa = PBXGroup;
+			children = (
+				E6313C5B8C8EFAE2EDE9A441 /* PaddleOcrPlugin.h */,
+				B97CCA013C688C67DB7BBBCF /* PaddleOcrPlugin.mm */,
+				05728553FF7FD835A4E56205 /* pipeline.h */,
+				2B1777C499F1CE2D69922DEB /* pipeline.cc */,
+				1B2C1039BFD9E839F3DD531A /* det_process.h */,
+				A9EFD9D579747E380C31F6CC /* det_process.cc */,
+				B7BA34EA73ECF7E80CDB8FB0 /* rec_process.h */,
+				1A3F47CBA96789D9F15371D0 /* rec_process.cc */,
+				D27090A0105345A78FB136AA /* cls_process.h */,
+				58242FFED36222AB06342EC5 /* cls_process.cc */,
+				22036FAF1BCC6364B177FEF3 /* db_post_process.h */,
+				9160FCCF7C5AF718C9B171DC /* db_post_process.cc */,
+				4F7C07EF1FBFC2437A2543D6 /* utils.h */,
+				10974A4C6AB216341FCA0ADE /* utils.cc */,
+				25BACA0B1A25CC1AC3E59158 /* timer.h */,
+				3A840C26FB457B22C5500528 /* clipper.hpp */,
+				0A574DEB60D046995505B9F2 /* clipper.cpp */,
+			);
+			path = PaddleOCR;
+			sourceTree = "<group>";
+		};
+		F48149938D7DD49016CF696B /* PaddleLite */ = {
+			isa = PBXGroup;
+			children = (
+				951460D10184E73CF8C4BAB1 /* include */,
+				3AD60423043017A703AA92FD /* lib */,
+			);
+			path = PaddleLite;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -128,8 +287,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
 			buildPhases = (
+				C76C48F3B0AEAC1FA6127143 /* [CP] Check Pods Manifest.lock */,
 				331C807D294A63A400263BE5 /* Sources */,
 				331C807F294A63A400263BE5 /* Resources */,
+				37AE2F3776A1BF040CB13D70 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -145,12 +306,15 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
+				14066EB333BAC6F4CA2AF31D /* [CP] Check Pods Manifest.lock */,
 				9740EEB61CF901F6004384FC /* Run Script */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				7BBD70822DC3C93C7282CFB8 /* [CP] Embed Pods Frameworks */,
+				09178D2F1FB01C45B2126851 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -222,6 +386,45 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		09178D2F1FB01C45B2126851 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		14066EB333BAC6F4CA2AF31D /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-Runner-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 		3B06AD1E1E4923F5004D2608 /* Thin Binary */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -238,6 +441,23 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
 		};
+		7BBD70822DC3C93C7282CFB8 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -252,6 +472,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+		};
+		C76C48F3B0AEAC1FA6127143 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-RunnerTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -270,6 +512,14 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
+				D1646E2A1F0BBE34BC92F654 /* PaddleOcrPlugin.mm in Sources */,
+				989CFBFEA73D15BAE13CCB55 /* pipeline.cc in Sources */,
+				E824C9E2D8EF0DB5EC9DBCCC /* det_process.cc in Sources */,
+				40A1396C9EFC303884DD606C /* rec_process.cc in Sources */,
+				68DB6EDABA517AD8F825BFA2 /* cls_process.cc in Sources */,
+				ADA27E22FB90DF61DE70ABED /* db_post_process.cc in Sources */,
+				14BD0BBD19D9A58EA4AE5507 /* utils.cc in Sources */,
+				C6B55978E4516E4EED64349B /* clipper.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -360,15 +610,42 @@
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 45Y369RGGY;
 				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/third-party\"",
+				);
+				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/PaddleOCR\"",
+					"\"$(SRCROOT)/Runner/third-party/PaddleLite/include\"",
+					"\"$(SRCROOT)/Runner/third-party\"",
+				);
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.snapspend;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/third-party/PaddleLite/lib\"",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(inherited)",
+					"-fmodules",
+					"-fcxx-modules",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lc++",
+					"-lz",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "org.pytorch.executorch.etllm-thomas";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -378,6 +655,7 @@
 		};
 		331C8088294A63A400263BE5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = D7A2BFB140B90AF8B3BEB829 /* Pods-RunnerTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -395,6 +673,7 @@
 		};
 		331C8089294A63A400263BE5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3CEB10CB382457D2A2D65DB4 /* Pods-RunnerTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -410,6 +689,7 @@
 		};
 		331C808A294A63A400263BE5 /* Profile */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B7ECC1E4F463AA85C5108022 /* Pods-RunnerTests.profile.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -539,15 +819,42 @@
 			baseConfigurationReference = 9740EEB21CF90195004384FC /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 45Y369RGGY;
 				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/third-party\"",
+				);
+				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/PaddleOCR\"",
+					"\"$(SRCROOT)/Runner/third-party/PaddleLite/include\"",
+					"\"$(SRCROOT)/Runner/third-party\"",
+				);
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.snapspend;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/third-party/PaddleLite/lib\"",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(inherited)",
+					"-fmodules",
+					"-fcxx-modules",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lc++",
+					"-lz",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "org.pytorch.executorch.etllm-thomas";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -561,15 +868,42 @@
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 45Y369RGGY;
 				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/third-party\"",
+				);
+				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/PaddleOCR\"",
+					"\"$(SRCROOT)/Runner/third-party/PaddleLite/include\"",
+					"\"$(SRCROOT)/Runner/third-party\"",
+				);
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.snapspend;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/Runner/third-party/PaddleLite/lib\"",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(inherited)",
+					"-fmodules",
+					"-fcxx-modules",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lc++",
+					"-lz",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "org.pytorch.executorch.etllm-thomas";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
