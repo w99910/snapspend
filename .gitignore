@@ -45,3 +45,4 @@ app.*.map.json
 /android/app/release
 ppocr_demo/
 Paddle-Lite-Demo/
+ios/Runner/third-party/
