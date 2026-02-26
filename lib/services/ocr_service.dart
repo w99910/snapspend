@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui';
-import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
@@ -182,17 +181,12 @@ class OcrService {
         if (paddleText.trim().isNotEmpty) {
           return paddleText;
         }
-        print('PaddleOCR returned empty text, falling back to Tesseract');
+        print('PaddleOCR returned empty text');
+        return '';
       } catch (e) {
-        print('PaddleOCR failed, falling back to Tesseract: $e');
+        print('PaddleOCR failed: $e');
+        rethrow;
       }
-
-      // Fallback to Tesseract
-      return await scanReceiptWithTesseract(
-        imagePath,
-        preprocessInBackground: preprocessInBackground,
-        ocrInBackground: ocrInBackground,
-      );
     } catch (e) {
       print('Error scanning receipt: $e');
       rethrow;
@@ -217,80 +211,15 @@ class OcrService {
     return cleanedText;
   }
 
-  /// Scans a receipt image with Tesseract OCR.
-  /// Returns the extracted text.
+  /// Tesseract OCR has been removed; PaddleOCR is the primary engine.
+  /// This stub is kept so callers that reference it still compile.
   Future<String> scanReceiptWithTesseract(
     String imagePath, {
     bool preprocessInBackground = true,
     bool ocrInBackground = true,
   }) async {
-    try {
-      print('Running Tesseract OCR on: $imagePath');
-
-      // Preprocess the image for better OCR results
-      print('Preprocessing image...');
-      final processedPath = await preprocessImage(
-        imagePath,
-        runInBackground: preprocessInBackground,
-      );
-
-      // Perform OCR on the preprocessed image
-      print('Running Tesseract OCR...');
-      final ocrArgs = <String, String>{
-        "psm": "3",
-        "oem": "1",
-        "preserve_interword_spaces": "1",
-      };
-
-      String text;
-      RootIsolateToken? rootToken;
-      if (ocrInBackground) {
-        try {
-          rootToken = RootIsolateToken.instance;
-        } catch (e) {
-          rootToken = null;
-        }
-      }
-
-      if (ocrInBackground && rootToken != null) {
-        try {
-          text = await compute(_tesseractOcrCompute, <String, Object?>{
-            'rootToken': rootToken,
-            'imagePath': processedPath,
-            'language': 'tha+eng',
-            'args': ocrArgs,
-          });
-        } catch (e) {
-          print('Background OCR failed, falling back to main isolate: $e');
-          text = await FlutterTesseractOcr.extractText(
-            processedPath,
-            language: 'tha+eng',
-            args: ocrArgs,
-          );
-        }
-      } else {
-        text = await FlutterTesseractOcr.extractText(
-          processedPath,
-          language: 'tha+eng',
-          args: ocrArgs,
-        );
-      }
-
-      final cleanedText = _postProcessOcrText(text);
-
-      print('$imagePath Tesseract Text:\n$cleanedText');
-
-      try {
-        await File(processedPath).delete();
-      } catch (e) {
-        print('Warning: Could not delete temporary file: $e');
-      }
-
-      return cleanedText;
-    } catch (e) {
-      print('Error in Tesseract OCR: $e');
-      rethrow;
-    }
+    print('Tesseract OCR is not available – using PaddleOCR instead');
+    return scanReceiptWithPaddleOCR(imagePath);
   }
 
   /// Post-process OCR text to fix common recognition errors
@@ -1016,22 +945,4 @@ void _preprocessImageSync({
 
   // Write PNG (sync)
   File(outputPath).writeAsBytesSync(img.encodePng(processed));
-}
-
-Future<String> _tesseractOcrCompute(Map<String, Object?> args) async {
-  final token = args['rootToken'] as RootIsolateToken?;
-  if (token == null) {
-    throw Exception('RootIsolateToken is null');
-  }
-  BackgroundIsolateBinaryMessenger.ensureInitialized(token);
-
-  final imagePath = args['imagePath'] as String;
-  final language = args['language'] as String;
-  final ocrArgs = (args['args'] as Map).cast<String, String>();
-
-  return FlutterTesseractOcr.extractText(
-    imagePath,
-    language: language,
-    args: ocrArgs,
-  );
 }

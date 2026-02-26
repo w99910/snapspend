@@ -90,6 +90,8 @@ other_ldflags = [
   '$(inherited)',
   '-lc++',
   '-lz',
+  '-force_load',
+  '$(SRCROOT)/Runner/third-party/PaddleLite/lib/libpaddle_api_light_bundled.a',
 ]
 
 runner_target.build_configurations.each do |config|

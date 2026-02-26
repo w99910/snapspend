@@ -644,6 +644,8 @@
 					"$(inherited)",
 					"-lc++",
 					"-lz",
+					"-force_load",
+					"$(SRCROOT)/Runner/third-party/PaddleLite/lib/libpaddle_api_light_bundled.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.pytorch.executorch.etllm-thomas";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -853,6 +855,8 @@
 					"$(inherited)",
 					"-lc++",
 					"-lz",
+					"-force_load",
+					"$(SRCROOT)/Runner/third-party/PaddleLite/lib/libpaddle_api_light_bundled.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.pytorch.executorch.etllm-thomas";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -902,6 +906,8 @@
 					"$(inherited)",
 					"-lc++",
 					"-lz",
+					"-force_load",
+					"$(SRCROOT)/Runner/third-party/PaddleLite/lib/libpaddle_api_light_bundled.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.pytorch.executorch.etllm-thomas";
 				PRODUCT_NAME = "$(TARGET_NAME)";

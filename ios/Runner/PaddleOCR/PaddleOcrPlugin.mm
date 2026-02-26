@@ -8,6 +8,8 @@
 
 #import "PaddleOcrPlugin.h"
 #include "pipeline.h"
+#include <paddle_use_kernels.h>
+#include <paddle_use_ops.h>
 #include <string>
 #include <vector>
 #include <mutex>

@@ -31,8 +31,23 @@ cv::Mat GetRotateCropImage(cv::Mat srcimage,
   int top = int(*std::min_element(y_collect, y_collect + 4));    // NOLINT
   int bottom = int(*std::max_element(y_collect, y_collect + 4)); // NOLINT
 
+  // Clamp to image boundaries
+  left = std::max(0, left);
+  top = std::max(0, top);
+  right = std::min(image.cols, right);
+  bottom = std::min(image.rows, bottom);
+
+  // Skip degenerate boxes
+  if (right - left <= 0 || bottom - top <= 0) {
+    return cv::Mat();
+  }
+
   cv::Mat img_crop;
   image(cv::Rect(left, top, right - left, bottom - top)).copyTo(img_crop);
+
+  if (img_crop.empty()) {
+    return cv::Mat();
+  }
 
   for (int i = 0; i < points.size(); i++) {
     points[i][0] -= left;
@@ -45,6 +60,11 @@ cv::Mat GetRotateCropImage(cv::Mat srcimage,
   int img_crop_height =
       static_cast<int>(sqrt(pow(points[0][0] - points[3][0], 2) +
                             pow(points[0][1] - points[3][1], 2)));
+
+  // Skip if the crop dimensions are zero
+  if (img_crop_width <= 0 || img_crop_height <= 0) {
+    return cv::Mat();
+  }
 
   cv::Point2f pts_std[4];
   pts_std[0] = cv::Point2f(0., 0.);
@@ -188,6 +208,11 @@ cv::Mat Pipeline::Process(cv::Mat img, std::string output_img_path,
   std::vector<float> rec_text_score;
   for (int i = boxes.size() - 1; i >= 0; i--) {
     crop_img = GetRotateCropImage(img_copy, boxes[i]);
+    // Skip degenerate boxes that produced an empty crop
+    if (crop_img.empty()) {
+      std::cout << "Skipping degenerate box " << i << std::endl;
+      continue;
+    }
     if (use_direction_classify >= 1) {
       crop_img =
           clsPredictor_->Predict(crop_img, nullptr, nullptr, nullptr, 0.9);

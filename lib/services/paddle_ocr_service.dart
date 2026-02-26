@@ -79,11 +79,11 @@ class PaddleOcrService {
     print('PaddleOCR: initializing on iOS via MethodChannel...');
 
     await _ocrChannel.invokeMethod('init', {
-      'detModel': 'assets/models/th_PP-OCRv5_mobile_det.nb',
-      'recModel': 'assets/models/th_PP-OCRv5_mobile_rec.nb',
-      'clsModel': 'assets/models/PP-LCNet_x0_25_textline_ori.nb',
-      'configPath': 'assets/models/config.txt',
-      'labelPath': 'assets/labels/th_ppocr_keys.txt',
+      'detModel': _modelAssets['det']!,
+      'recModel': _modelAssets['rec']!,
+      'clsModel': _modelAssets['cls']!,
+      'configPath': _modelAssets['config']!,
+      'labelPath': _modelAssets['label']!,
     });
 
     _isInitialized = true;

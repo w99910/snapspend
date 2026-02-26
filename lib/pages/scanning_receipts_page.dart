@@ -284,91 +284,92 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
     }
 
     // Check if Qwen3 model is available
-    setState(() {
-      _statusMessage = 'Checking AI model...';
-    });
+    // (Skipped — LLM extraction disabled for now)
+    // setState(() {
+    //   _statusMessage = 'Checking AI model...';
+    // });
 
-    final modelExists = await _ocrService.llamaService.checkModelExists();
+    // final modelExists = await _ocrService.llamaService.checkModelExists();
 
-    if (!modelExists) {
-      if (!mounted) return;
+    // if (!modelExists) {
+    //   if (!mounted) return;
 
-      // Show dialog to download model
-      final shouldDownload = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1E3A5F),
-          title: const Text(
-            'AI Model Required',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: const Text(
-            'The Qwen3 AI model is needed to extract receipt data. '
-            'Would you like to download it now? (~400MB)',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A90E2),
-              ),
-              child: const Text('Download'),
-            ),
-          ],
-        ),
-      );
+    //   // Show dialog to download model
+    //   final shouldDownload = await showDialog<bool>(
+    //     context: context,
+    //     barrierDismissible: false,
+    //     builder: (context) => AlertDialog(
+    //       backgroundColor: const Color(0xFF1E3A5F),
+    //       title: const Text(
+    //         'AI Model Required',
+    //         style: TextStyle(color: Colors.white),
+    //       ),
+    //       content: const Text(
+    //         'The Qwen3 AI model is needed to extract receipt data. '
+    //         'Would you like to download it now? (~400MB)',
+    //         style: TextStyle(color: Colors.white70),
+    //       ),
+    //       actions: [
+    //         TextButton(
+    //           onPressed: () => Navigator.of(context).pop(false),
+    //           child: const Text('Cancel'),
+    //         ),
+    //         ElevatedButton(
+    //           onPressed: () => Navigator.of(context).pop(true),
+    //           style: ElevatedButton.styleFrom(
+    //             backgroundColor: const Color(0xFF4A90E2),
+    //           ),
+    //           child: const Text('Download'),
+    //         ),
+    //       ],
+    //     ),
+    //   );
 
-      if (shouldDownload != true) {
-        if (mounted) {
-          _navigateToMainApp();
-        }
-        return;
-      }
+    //   if (shouldDownload != true) {
+    //     if (mounted) {
+    //       _navigateToMainApp();
+    //     }
+    //     return;
+    //   }
 
-      // Download the model
-      if (mounted) {
-        setState(() {
-          _statusMessage = 'Downloading AI model...';
-        });
-      }
+    //   // Download the model
+    //   if (mounted) {
+    //     setState(() {
+    //       _statusMessage = 'Downloading AI model...';
+    //     });
+    //   }
 
-      try {
-        await _ocrService.llamaService.downloadModel(
-          onProgress: (progress, message) {
-            if (mounted) {
-              setState(() {
-                _statusMessage = message;
-              });
-            }
-          },
-        );
+    //   try {
+    //     await _ocrService.llamaService.downloadModel(
+    //       onProgress: (progress, message) {
+    //         if (mounted) {
+    //           setState(() {
+    //             _statusMessage = message;
+    //           });
+    //         }
+    //       },
+    //     );
 
-        if (mounted) {
-          setState(() {
-            _statusMessage = 'Model downloaded! Starting scan...';
-          });
-        }
-        await Future.delayed(const Duration(milliseconds: 500));
-      } catch (e) {
-        print('Error downloading model: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to download model: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          _navigateToMainApp();
-        }
-        return;
-      }
-    }
+    //     if (mounted) {
+    //       setState(() {
+    //         _statusMessage = 'Model downloaded! Starting scan...';
+    //       });
+    //     }
+    //     await Future.delayed(const Duration(milliseconds: 500));
+    //   } catch (e) {
+    //     print('Error downloading model: $e');
+    //     if (mounted) {
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         SnackBar(
+    //           content: Text('Failed to download model: $e'),
+    //           backgroundColor: Colors.red,
+    //         ),
+    //       );
+    //       _navigateToMainApp();
+    //     }
+    //     return;
+    //   }
+    // }
 
     // Get receipt images from gallery
     final receiptFiles = await _getReceiptImages();
@@ -417,49 +418,14 @@ class _ScanningReceiptsPageState extends State<ScanningReceiptsPage>
 
         if (!mounted) return;
 
-        // Update status to show we're using AI
-        setState(() {
-          _statusMessage = 'Extracting data with Qwen3 AI...';
-        });
-
-        // Extract structured data using Llama/Qwen3
-        Map<String, dynamic> extractedData;
-        // try {
-        extractedData = await _ocrService.extractReceiptDataWithLlama(
-          receiptText: text,
-          onStatusUpdate: (status) {
-            print('Llama status: $status');
-            if (mounted) {
-              setState(() {
-                _statusMessage = status;
-              });
-            }
-          },
-          onTextUpdate: (generatedText) {
-            print('Llama generating: $generatedText');
-          },
-        );
-        print('✓ Extracted data: $extractedData');
-        // } catch (llamaError) {
-        //   print(
-        //     '⚠️ Llama extraction failed, falling back to enhanced parsing: $llamaError',
-        //   );
-        //   // Fallback to enhanced Thai receipt parsing if Llama fails
-        //   extractedData = _ocrService.extractFromThaiReceipt(text);
-
-        //   // If enhanced parsing also fails, use basic parser
-        //   if (extractedData['amount'] == 0.0 &&
-        //       extractedData['sender'] == 'N/A') {
-        //     print('⚠️ Enhanced parsing failed, using basic parser');
-        //     final parsedData = _ocrService.parseReceiptText(text);
-        //     extractedData = {
-        //       'sender': parsedData['merchant'] ?? 'N/A',
-        //       'recipient': parsedData['recipient'] ?? 'N/A',
-        //       'amount': parsedData['total'] ?? 0.0,
-        //       'time': parsedData['date'] ?? 'N/A',
-        //     };
-        //   }
-        // }
+        // Skip LLM extraction for now — just show raw OCR results
+        Map<String, dynamic> extractedData = {
+          'sender': 'N/A',
+          'recipient': 'N/A',
+          'amount': 0.0,
+          'time': 'N/A',
+        };
+        print('✓ Raw OCR text:\n$text');
 
         if (!mounted) return;
 
